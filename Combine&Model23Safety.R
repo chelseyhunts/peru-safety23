@@ -167,9 +167,9 @@ M1<-glmer(Total.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) +
 M2<-glmer(Total.Recs~Treatment+Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
 M3<-glmer(Total.Recs~Treatment + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
 M4<-glmer(Total.Recs~Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
-Mnull1<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=Safety23)
+MN1<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=Safety23)
 summary(M3)
-selection<-model.sel(M1, M2, M3, M4, Mnull1)
+selection<-model.sel(M1, M2, M3, M4, MN1)
 selection
 anova(M1)
 plot(M1)
@@ -180,18 +180,16 @@ plot(M1)
 #Want to model group effects, so just solo treatments
 group.trmts <- Safety23 %>% filter(!Treatment=="MSFSOLO" & !Treatment=="NFSOLO")
 
-#Add optimizer
 #glmer(response~fixed.exp.var+fixedexp.var+(1|random.exp.var)), family = "", data = dataframe
 M5<-glmer(Total.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) + (1|Exemplar), 
           family="poisson", data=group.trmts)
 M6<-glmer(Total.Recs~Treatment+Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=group.trmts)
 M7<-glmer(Total.Recs~Treatment + (1|Point) + (1|Exemplar), family="poisson", data=group.trmts)
 M8<-glmer(Total.Recs~Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=group.trmts)
-Mnull2<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=group.trmts)
+MN2<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=group.trmts)
 summary(M3)
-selection<-model.sel(M1, M2, M3, M4, Mnull2)
+selection<-model.sel(M5, M6, M7, M8, MN2)
 selection
-anova(M1)
 
 ###Model solo treatments with control####
 #Want to also model individual effects, so just solo treatments
@@ -204,11 +202,7 @@ M10<-glmer(Total.Recs~Tr.Type+Forest.type + (1|Point) + (1|Exemplar), family="po
 M11<-glmer(Total.Recs~Tr.Type+(1|Point) + (1|Exemplar),family="poisson",data=solo.trmts) #failed to converge
 MN3<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=solo.trmts)
 
-M6<-glm(Total.Recs~Tr.Type+Forest.type+Tr.Type*Forest.type, family="poisson", data=solo.trmts)
-summary(M6)
-selection<-model.sel(M5, M6, MN3)
-
-###Running into convergence problems, need to add optimizer
+#####Running into convergence problems, need to add optimizer####
 #using allfit() with glmer()
 #install.packages("optimx")
 #library(optimx)
@@ -216,13 +210,17 @@ selection<-model.sel(M5, M6, MN3)
 #library(minqa)
 #install.packages("dfoptim")
 #library(dfoptim)
+#This will tell you which optimizer to use...
 
 # Iterate through a set of optimizers, report convergence results
-diff_optims <- allFit(M6, maxfun = 1e5)
+#check first model of solo only with convergence problem
+diff_optims <- allFit(M9, maxfun = 1e5)
 
+#Set up to print which optimizers will work -- if null printed, good to use
 diff_optims_OK <- diff_optims[sapply(diff_optims, is, "merMod")]
 lapply(diff_optims_OK, function(x) x@optinfo$conv$lme4$messages)
 
+#Not sure what this part does...need to check website
 convergence_results <- lapply(diff_optims_OK, function(x) x@optinfo$conv$lme4$messages)
 working_indices <- sapply(convergence_results, is.null)
 if(sum(working_indices) == 0){
@@ -244,7 +242,7 @@ M11<-glmer(Total.Recs~Tr.Type+(1|Point) + (1|Exemplar),
           family="poisson",data=solo.trmts, control = glmerControl(optimizer = "bobyqa"))
 MN3<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=solo.trmts)
 
-summary(M7)
+summary(M11)
 selection<-model.sel(M9, M10, M11, MN3)
 selection
 
@@ -265,119 +263,54 @@ library(glmmTMB)
 library(TMB)
 
 ##Use previous function to check for overdispersion in model
-overdisp_fun(M1) #Not sure how to tell if overdispersed??
+#output: chisq--tests whether variance of model resids is greater than expected
+#based on assumed dist of response var
+#ratio-- chisq/resid degrees of freedom, want to be close to 1
+#rdf--resid degrees freedom
+#p-val--H0: no overdispersion, HA: overdispersion
+overdisp_fun(M9) 
 
 ####Predict values and plot for number of recruits####
-#Run model
+##Run model
 M1<-glmer(Total.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
+M9<-glmer(Total.Recs~Tr.Type+Forest.type + Tr.Type*Forest.type + (1|Point) + (1|Exemplar), 
+          family="poisson", data=solo.trmts, control = glmerControl(optimizer = "bobyqa"))
+
 
 ##Predict model values
 #pred <- predict(model, type="")
-predicted_vals <- predict(M1, type="response")
+predicted_vals <- predict(M9, type="response")
 
 ##Create data frame for plotting by combining observed and predicted values
-predicted_data <- data.frame(Observed=Safety23$Total.Recs, Predicted=predicted_vals, Treatment=Safety23$Treatment)
+#because above predict function provides values in the same order as original dataframe
+#can just add predictions by either adding predictions to original df or by creating
+#new df with just the variables I want for plotting
+predicted_data <- data.frame(Trial= solo.trmts$Trial, Observed=solo.trmts$Total.Recs, Predicted=predicted_vals, 
+                             Treatment=solo.trmts$Tr.Type, Forest.type=solo.trmts$Forest.type)
 
-#Create boxplot with predicted values 
-ggplot(predicted_data, aes(Treatment, Predicted)) +
-  geom_boxplot() + geom_jitter(aes(Safety23$Treatment, Safety23$Total.Recs, colour=Safety23$Treatment))+
-  labs(x="Treatment", y="Predicted")
+#####Create boxplot with predicted values and points of observed values####
+ggplot(predicted_data, aes(Treatment, Predicted)) + #adds treatment to x and predicted values for y
+  geom_boxplot() + #creates boxplot for predicted values
+  theme_minimal() +
+  facet_wrap(~Forest.type, scales = "free_y") + #adds two panes to show forest types separately
+  geom_jitter(aes(solo.trmts$Tr.Type, solo.trmts$Total.Recs, colour=solo.trmts$Tr.Type), 
+              width = 0.2) + #adds points for observed values and shrinks width of points
+  labs(x="Treatment", y="Values", color="Treatment") #labels for x, y, legend
 
-ggplot(predicted_data, aes(Factor, Observed)) + 
-  geom_boxplot()+
-  geom_jitter(data=predicted_data, aes(x="", y=Predicted), width = 0.2, alpha=0.7, color="red") +
-  labs(x="Treatment", y = "Values")
-
-pred.plot <- ggplot(predicted_data, aes(Factor, Predicted)) +
-  geom_boxplot()+ geom_jitter()+
-  labs(x="Treatment", y="Predicted") +theme_bw()
-
-pred.plot
-pred.plot + geom_boxplot(data = Safety23, aes(Treatment, Total.Recs, fill=Treatment), width = 0.2, alpha = 0.5) +
-  geom_jitter(data=Safety23, aes(Treatment, Total.Recs, colour=Treatment))
-
-
-##This does not account for different forest types!##
-
-#need to figure out how many of each there are for dataframe
-#library(dplyr)
-
-count_combinations <- Safety23 %>%
-  group_by(Treatment, Forest.type) %>%
-  summarise(Count = n())
-
-print(count_combinations)
-
-###Create data frame for predictions
-# Create a new data frame that repeats each combination based on the count
-new_data <- count_combinations %>%
-  uncount(Count)
-
-# Now, new_data contains rows repeated according to the count
-
-predictions <- predict(M1, newdata = new_data, type = "response", re.form = NA)
-#Create data frame for plotting by combining observed and predicted values
-predicted_data <- data.frame(Observed=Safety23$Total.Recs, Predicted=predictions, Factor=Safety23$Treatment)
-
-
-#Create data frame for plotting by combining observed and predicted values
-# Create a new data frame that combines observed and predicted values for both categorical predictors
-predictions <- predict(M1, newdata = new_data, type = "response", re.form = NA)
-combined_data <- data.frame(
-  Treatment = Safety23$Treatment,  # Replace with your actual predictor variables
-  Forest.type = Safety23$Forest.type,  # Replace with your actual predictor variables
-  Observed_Values = Safety23$Total.Recs,  # Replace with your actual observed values
-  Predicted_Values = predictions
-)
-
-
-# Assuming you have a data frame 'data' with 'Observed' and 'Predicted' columns
-
-# Create a new data frame by stacking 'Observed' and 'Predicted' values
-stacked_data <- data.frame(
-  Value = c(combined_data$Observed_Values, combined_data$Predicted_Values),
-  Type = factor(rep(c("Observed", "Predicted"), each = nrow(combined_data)))
-)
-
-# Combine 'stacked_data' with 'original_data' to preserve predictor variables
-combined_data <- cbind(combined_data, stacked_data)
-
-# Now 'combined_data' contains both the original predictor variables and the stacked values
-
-# Create a ggplot object
-plot <- ggplot(combined_data, aes(x = Treatment, y = Value, fill = Type)) +
-  geom_boxplot() +
-  facet_wrap(~Forest.type, scales = "free_y") +  # Create panels for each level of 'Predictor2'
-  labs(x = "Type", y = "Value") +
-  theme_minimal()
-
-plot
-
-ggplot(combined_data, aes(Treatment, Predicted_Values)) +
-  geom_boxplot() +
-  facet_wrap(~Forest.type, scales = "free_y") + 
-  geom_jitter(aes(Safety23$Treatment, Safety23$Total.Recs, colour=Safety23$Treatment))+
-  labs(x="Treatment", y="Predicted") +theme_ggeffects()
-
-
-#Create boxplot with predicted values 
-ggplot(predicted_data, aes(Factor, Predicted)) +
-  geom_boxplot() +
-  geom_jitter(aes(Safety23$Treatment, Safety23$Total.Recs, colour=Safety23$Treatment))+
-  labs(x="Treatment", y="Predicted")
-
-pred.plot <- ggplot(predicted_data, aes(Factor, Predicted)) +
-  geom_boxplot()+ geom_jitter()+
-  labs(x="Treatment", y="Predicted") +theme_bw()
+#####Create boxplot of predicted values and layer boxplot of observed values####
+pred.plot <- ggplot(predicted_data, aes(Treatment, Predicted)) +
+  geom_boxplot()+ #geom_jitter()+
+  labs(x="Treatment", y="Values") +theme_bw() #Need to add label in here somehow to show pred vs obs
 
 pred.plot #predicted plot from model
-pred.plot + 
-  geom_boxplot(data = Safety23, aes(Treatment, Total.Recs, fill=Treatment), width = 0.2, alpha = 0.5) +
-  geom_jitter(data=Safety23, aes(Treatment, Total.Recs, colour=Treatment))+
-  facet_wrap(~Forest.type, scales = "free_y") 
+#Add observed boxplot layer
+pred.plot + geom_boxplot(data = predicted_data, 
+                         aes(Treatment, Observed, fill=Treatment), width = 0.2, alpha = 0.5) +
+  facet_wrap(~Forest.type, scales = "free_y") #+ 
+ # geom_jitter(data=Safety23, aes(Treatment, Total.Recs, colour=Treatment))
 
-ggplot(predicted_data, aes(x = Factor)) +
-  geom_ribbon(aes(ymin = lower_ci, ymax = upper_ci), fill = "blue", alpha = 0.3) +
+#####Another way to plot this using points and lines####
+ggplot(predicted_data, aes(x = Treatment)) +
   geom_line(aes(y = Predicted), color = "black", linetype = "solid", size = 2) +
   geom_point(aes(y = Observed), color = "magenta", size = 1) +
   labs(title = "Predicted vs. Actual Values",
@@ -385,16 +318,14 @@ ggplot(predicted_data, aes(x = Factor)) +
        y = "Number of Recruits") +
   theme_minimal()
 
-
-####Plot model using ggeffects####
+#####Plot model using ggeffects####
 library(ggeffects)
-ggpred <- ggpredict(M1, terms = c("Treatment", "Forest.type"))
+ggpred <- ggpredict(M9, terms = c("Tr.Type", "Forest.type"))
 plot(ggpred)
 
 
-
 ###Run glmm for proportion of recruits#### 
-#beta regression (with mixed effects??)
+#beta regression (with mixed effects)
 #glmer(response~fixed.exp.var+fixedexp.var+(1|random.exp.var)), family = "", data = dataframe
 M1<-glmer(Total.prop.rec~Treatment+Forest.type+(1|Exemplar),family="binomial", data=Safety23)
 M2<-glmer(Total.prop.rec~Treatment+(1|Exemplar),family="binomial",data=Safety23)
