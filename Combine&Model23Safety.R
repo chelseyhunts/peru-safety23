@@ -271,18 +271,36 @@ overdisp_fun(M1) #Not sure how to tell if overdispersed??
 #Run model
 M1<-glmer(Total.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
 
-#Predict model values
+##Predict model values
 #pred <- predict(model, type="")
 predicted_vals <- predict(M1, type="response")
-unique(Safety23$Forest.type)
 
-##Create df for predictions
-predictions <- predict(M1, newdata = new_data, type = "response")
+##Create data frame for plotting by combining observed and predicted values
+predicted_data <- data.frame(Observed=Safety23$Total.Recs, Predicted=predicted_vals, Treatment=Safety23$Treatment)
+
+#Create boxplot with predicted values 
+ggplot(predicted_data, aes(Treatment, Predicted)) +
+  geom_boxplot() + geom_jitter(aes(Safety23$Treatment, Safety23$Total.Recs, colour=Safety23$Treatment))+
+  labs(x="Treatment", y="Predicted")
+
+ggplot(predicted_data, aes(Factor, Observed)) + 
+  geom_boxplot()+
+  geom_jitter(data=predicted_data, aes(x="", y=Predicted), width = 0.2, alpha=0.7, color="red") +
+  labs(x="Treatment", y = "Values")
+
+pred.plot <- ggplot(predicted_data, aes(Factor, Predicted)) +
+  geom_boxplot()+ geom_jitter()+
+  labs(x="Treatment", y="Predicted") +theme_bw()
+
+pred.plot
+pred.plot + geom_boxplot(data = Safety23, aes(Treatment, Total.Recs, fill=Treatment), width = 0.2, alpha = 0.5) +
+  geom_jitter(data=Safety23, aes(Treatment, Total.Recs, colour=Treatment))
+
+
+##This does not account for different forest types!##
 
 #need to figure out how many of each there are for dataframe
-nrow(Safety23[which(Safety23$Treatment=="MSF" & Safety23$Forest.type=="VA"),])
-#easier way
-library(dplyr)
+#library(dplyr)
 
 count_combinations <- Safety23 %>%
   group_by(Treatment, Forest.type) %>%
@@ -304,6 +322,7 @@ predicted_data <- data.frame(Observed=Safety23$Total.Recs, Predicted=predictions
 
 #Create data frame for plotting by combining observed and predicted values
 # Create a new data frame that combines observed and predicted values for both categorical predictors
+predictions <- predict(M1, newdata = new_data, type = "response", re.form = NA)
 combined_data <- data.frame(
   Treatment = Safety23$Treatment,  # Replace with your actual predictor variables
   Forest.type = Safety23$Forest.type,  # Replace with your actual predictor variables
