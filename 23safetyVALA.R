@@ -1,9 +1,5 @@
 ##Analysis for safety cue thesis work in varzea forest 
 
-
-### Clear R's brain
-rm(list = ls()) 
-
 ###Set working directory
 
 ###Read in libraries

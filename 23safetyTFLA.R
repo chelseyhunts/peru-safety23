@@ -1,11 +1,6 @@
 ##Analysis for safety cue thesis work in tierra firme forest 
 
-
-### Clear R's brain 
-rm(list = ls()) 
-
 ###Set working directory
-#setwd("/Users/chelseyhunts/Documents/UCSC Documents/Thesis work/Analyses/Safety Cue Analysis 23")
 
 ###Read in libraries
 library(tidyverse)
