@@ -22,10 +22,19 @@ sapply(safetyTFLA, class)
 ####Subset dataframe for variables of interest####
 TFLAmaster <- subset(TFLAmaster, select = c("Prueba","Point"))
 names(TFLAmaster)[1] <- "Trial"
+#Remove duplicates
+TFLAmaster %>% distinct(Trial, .keep_all = TRUE)
 
 ###Add trial location column
 head(safetyTFLA)
-safetyTFLA <- merge(TFLAmaster, safetyTFLA, by="Trial")
+unique(safetyTFLA$Trial)
+unique(TFLAmaster$Trial)
+safetyTFLA <- merge(TFLAmaster, safetyTFLA, by="Trial") #somehow this adds e
+
+###Exchange UKs for their IDs
+safetyTFLA$Spp <- ifelse(safetyTFLA$Spp == "UK", safetyTFLA$ID, safetyTFLA$Spp)
+safetyTFLA$Spp <- ifelse(safetyTFLA$Spp == "UKCAN", safetyTFLA$ID, safetyTFLA$Spp)
+safetyTFLA$Spp <- ifelse(safetyTFLA$Spp == "UKCOL", safetyTFLA$ID, safetyTFLA$Spp)
 
 
 ############Response 1################################################################
@@ -197,7 +206,7 @@ for(i in Unique.trials){
 Spp.rec.per.trial<-data.frame(Unique.trials, Spp.rec.per.trial)
 #Change names
 names(Spp.rec.per.trial) <- c("Trial", "Spp.rec.per.trial")
-
+head(Spp.rec.per.trial)
 ###Create data frame of just trial and treatment
 head(rec.trialTFLA30)
 Trial.trtmt <- subset(rec.trialTFLA30, select = c("Trial", "Treatment","Exemplar"))

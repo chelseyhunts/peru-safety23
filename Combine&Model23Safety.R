@@ -353,7 +353,11 @@ ggplot(solo.trmts, aes(x = Total.Recs, fill = Tr.Type)) +
 #Random effects: exemplar, point
 
 ####Fit model beta reg for prop recruits####
-M1<-glmer(Total.prop.rec~Treatment+Forest.type+(1|Exemplar),family="binomial", data=Safety23)
+#model <- glmmTMB(response_variable ~ predictor1 + predictor2 + (1 | random_effect1) + (1 | random_effect2), 
+#family = beta_family(link = "logit"), data = your_data)
+
+B1<-glmmTMB(Total.prop.rec~Treatment+Forest.type+(1|Exemplar) + (1|Point),
+            family=beta_family(link = "logit"), data=Safety23)
 M2<-glmer(Total.prop.rec~Treatment+(1|Exemplar),family="binomial",data=Safety23)
 #model.indglobal<-glmer(Total.Recs~Time+(1|treatments),family="poisson",data=rec.trialall)
 M.null<-glmer(Total.prop.~1+(1|Exemplar),family="poisson",data=Safety23)
