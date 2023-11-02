@@ -163,6 +163,7 @@ unique(Safety23$Treatment)
 ###Model number of recruits with all treatments####
 #Run glmm for total recruits
 #glmer(response~fixed.exp.var+fixedexp.var+(1|random.exp.var)), family = "", data = dataframe
+control_params <- glmerControl(optimizer="bobyqa", optCtrl = list(maxfun=2000))
 M1<-glmer(Total.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
 M2<-glmer(Total.Recs~Treatment+Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
 M3<-glmer(Total.Recs~Treatment + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
@@ -242,7 +243,7 @@ M11<-glmer(Total.Recs~Tr.Type+(1|Point) + (1|Exemplar),
           family="poisson",data=solo.trmts, control = glmerControl(optimizer = "bobyqa"))
 MN3<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=solo.trmts)
 
-summary(M11)
+summary(M9)
 selection<-model.sel(M9, M10, M11, MN3)
 selection
 
@@ -343,7 +344,6 @@ ggplot(solo.trmts, aes(x = Total.Recs, fill = Tr.Type)) +
   geom_density(alpha = 0.6) +
   labs(title = "Density Plot of Response by Category")
 
-
 #2: check heteroskedasticity -- unequal variability of the response var across diff
 #levels of predictors
 #3: assess for multicollinearity among predictor vars, high correlations no good
@@ -377,7 +377,7 @@ net.dist23 <- read.csv("net.dist23.csv")
 head(net.dist23)
 
 #m.dist1 <- lmer(Net.Dist~Treatment+Forest.type+Forest.Type*Treatment+(1|Exemplar),data = net.dist23)
-m.dist1 <- lmer(Net.Dist~Treatment+Forest.type+(1|Point),data = net.dist23)
+m.dist1 <- lmer(Net.Dist~Treatment+Forest.type+(1|Point), data = net.dist23)
 m.dist1 <- lm(Net.Dist~Treatment+Forest.type+Forest.type*Treatment,data = net.dist23) #check assumptions, log transform?
 m.distnull <- lmer(Net.Dist~1+(1|Exemplar), data = net.dist23)
 help("isSingular") #not sure about that
