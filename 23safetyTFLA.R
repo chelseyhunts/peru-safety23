@@ -14,7 +14,7 @@ TFLAmaster <- read.csv("23TFLA.MASTER.csv")
 head(safetyTFLA)
 head(TFLAmaster)
 
-####Subset dataframe for variables of interest####
+####Subset data frame for variables of interest####
 safetyTFLA <- subset(safetyTFLA, select = c("Trial","Treatment", "Exemplar", "Stage","Spp", "ID", "Distance"))
 sapply(safetyTFLA, class)
 
@@ -23,18 +23,17 @@ sapply(safetyTFLA, class)
 TFLAmaster <- subset(TFLAmaster, select = c("Prueba","Point"))
 names(TFLAmaster)[1] <- "Trial"
 #Remove duplicates
-TFLAmaster %>% distinct(Trial, .keep_all = TRUE)
+TFLAmaster <- TFLAmaster %>% distinct(Trial, .keep_all = TRUE)
 
 ###Add trial location column
-head(safetyTFLA)
-unique(safetyTFLA$Trial)
-unique(TFLAmaster$Trial)
-safetyTFLA <- merge(TFLAmaster, safetyTFLA, by="Trial") #somehow this adds e
-
-###Exchange UKs for their IDs
-safetyTFLA$Spp <- ifelse(safetyTFLA$Spp == "UK", safetyTFLA$ID, safetyTFLA$Spp)
-safetyTFLA$Spp <- ifelse(safetyTFLA$Spp == "UKCAN", safetyTFLA$ID, safetyTFLA$Spp)
-safetyTFLA$Spp <- ifelse(safetyTFLA$Spp == "UKCOL", safetyTFLA$ID, safetyTFLA$Spp)
+#First need to remove any spaces before or after trial number, as was adding extra
+#observations
+#library(stringr)
+#library(dplyr)
+safetyTFLA %>% mutate(Trial = str_squish(Trial))
+TFLAmaster %>% mutate(Trial = str_squish(Trial))
+safetyTFLA <- merge(TFLAmaster, safetyTFLA, by="Trial")
+write.csv(safetyTFLA, "23safetycueTFLA.csv", row.names = FALSE)
 
 
 ############Response 1################################################################
@@ -99,6 +98,11 @@ head(pre.v.postTFLA30)
 pre.v.postTFLA30$Spp <- gsub('[0-9.]', '', pre.v.postTFLA30$ID)
 head(pre.v.postTFLA30)
 
+###Exchange UKs for their IDs
+pre.v.postTFLA30$Spp <- ifelse(pre.v.postTFLA30$Spp == "UK", pre.v.postTFLA30$ID, pre.v.postTFLA30$Spp)
+pre.v.postTFLA30$Spp <- ifelse(pre.v.postTFLA30$Spp == "UKCAN", pre.v.postTFLA30$ID, pre.v.postTFLA30$Spp)
+pre.v.postTFLA30$Spp <- ifelse(pre.v.postTFLA30$Spp == "UKCOL", pre.v.postTFLA30$ID, pre.v.postTFLA30$Spp)
+
 ###Reorder df
 ###Order data frame
 pre.v.postTFLA30 <- pre.v.postTFLA30[, c(1,2,3,7,4,5,6)]
@@ -125,8 +129,7 @@ head(pre.v.postTFLA30)
 unique(pre.v.postTFLA30$Treatment)
 head(pre.v.postTFLA30)
 
-install.packages("dplyr")
-library(dplyr)
+#library(dplyr)
 
 #NF <- pre.v.postTFLA30.1 %>% 
   #filter(trtmt.grp=="NonFlock" )
@@ -212,8 +215,7 @@ head(rec.trialTFLA30)
 Trial.trtmt <- subset(rec.trialTFLA30, select = c("Trial", "Treatment","Exemplar"))
 head(Trial.trtmt)
 ###Now need to combine trial.trtmt, spp.rec.per.trial, spp.per.trial
-install.packages("tidyverse")
-library(tidyverse)
+#library(tidyverse)
 str(Spp.rec.per.trial)
 
 ####Merge data to get prop df####
@@ -240,8 +242,17 @@ TFLA.R1 <- TFLA.R1[order(TFLA.R1$Trial),]
 ###Add trial location column
 head(TFLA.R1)
 TFLA.R1 <- merge(TFLAmaster, TFLA.R1, by="Trial")
+
+###Add Forest type column
+TFLA.R1$Forest.type <- rep("TF")
+head(TFLA.R1)
+
+###Rename responses as response 1 to prepare for combination with Response 2
+names(TFLA.R1)[5:8] <- c("R1.recruit", "R1.spp.per.trial", "R1.spp.rec.per.trial", "R1.prop.rec")
+head(TFLA.R1)
+
 ###Order data frame
-TFLA.R1 <- TFLA.R1[, c(1,2,3,4,9,5,6,7,8)]
+TFLA.R1 <- TFLA.R1 %>% select(1,2,3,4,9,5,6,7,8)
 
 ####Write final Response 1 time 1 new csv/Read in####
 write.csv(TFLA.R1, "TFLA.R1.csv", row.names = FALSE)
@@ -254,24 +265,10 @@ library(ggplot2)
 library(wesanderson)
 library(viridis)
 
-prop.plotTFLA.R1 <- ggplot(TFLA.R1, aes(Treatment, Prop.rec)) + geom_boxplot(aes(fill=Treatment)) + theme_bw() +labs(title="Tierra Firme Response 1", x="Treatment", y="Proportion Recruits") + guides(fill=guide_legend(title="Treatment Group")) + stat_summary(fun=mean, geom="point", shape=15, size=4, color="gold4", fill="gold4") +scale_fill_manual(values = wes_palette("Moonrise3", n = 5))
+prop.plotTFLA.R1 <- ggplot(TFLA.R1, aes(Treatment, R1.prop.rec)) + geom_boxplot(aes(fill=Treatment)) + theme_bw() +labs(title="Tierra Firme Response 1", x="Treatment", y="Proportion Recruits") + guides(fill=guide_legend(title="Treatment Group")) + stat_summary(fun=mean, geom="point", shape=15, size=4, color="gold4", fill="gold4") +scale_fill_manual(values = wes_palette("Moonrise3", n = 5))
 colors()
 
-num.plotTFLA.R1 <- ggplot(TFLA.R1, aes(Treatment, Recruit)) + geom_boxplot(aes(fill=Treatment)) + theme_bw() +labs(title="Tierra Firme Response 1", x="Treatment", y="Number of Recruits") + guides(fill=guide_legend(title="Treatment Group")) + stat_summary(fun=mean, geom="point", shape=15, size=4, color="gold4", fill="gold4") + scale_fill_manual(values = wes_palette("Moonrise3", n = 5))
-
-
-###Add Forest type column
-TFLA.R1$Forest.type <- rep("TF")
-head(TFLA.R1)
-
-###Rename responses as response 1 to prepare for combination with Response 2
-names(TFLA.R1)[4:7] <- c("R1.recruit", "R1.spp.per.trial", "R1.spp.rec.per.trial", "R1.prop.rec")
-head(TFLA.R1)
-
-####Write csv for TFLA R1####
-write.csv(TFLA.R1, "TFLA.R1.csv", row.names = FALSE)
-TFLA.R1 <- read.csv("TFLA.R1.csv")
-head(TFLA.R1)
+num.plotTFLA.R1 <- ggplot(TFLA.R1, aes(Treatment, R1.recruit)) + geom_boxplot(aes(fill=Treatment)) + theme_bw() +labs(title="Tierra Firme Response 1", x="Treatment", y="Number of Recruits") + guides(fill=guide_legend(title="Treatment Group")) + stat_summary(fun=mean, geom="point", shape=15, size=4, color="gold4", fill="gold4") + scale_fill_manual(values = wes_palette("Moonrise3", n = 5))
 
 ####Plot comb TFLA.R1####
 p1TF <- ggplot(TFLA.R1, aes(x=Treatment, y=R1.prop.rec, fill=Treatment)) + 
@@ -289,7 +286,7 @@ p2TF <- ggplot(TFLA.R1, aes(x=Treatment, y=R1.recruit, fill=Treatment)) +
   stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")  
 
 
-#library(ggpubr)
+library(ggpubr)
 pcombTF <- ggarrange(p1TF, p2TF, 
           labels = c("A", "B"),
           ncol=1, nrow=2, 
@@ -317,28 +314,34 @@ head(safetyTFLA)
 safetyTFLA.R2 <- safetyTFLA
 head(safetyTFLA.R2)
 
+###Exchange UKs for their IDs
+safetyTFLA.R2$Spp <- ifelse(safetyTFLA.R2$Spp == "UK", safetyTFLA.R2$ID, safetyTFLA.R2$Spp)
+safetyTFLA.R2$Spp <- ifelse(safetyTFLA.R2$Spp == "UKCAN", safetyTFLA.R2$ID, safetyTFLA.R2$Spp)
+safetyTFLA.R2$Spp <- ifelse(safetyTFLA.R2$Spp == "UKCOL", safetyTFLA.R2$ID, safetyTFLA.R2$Spp)
+
 ####Split dataframe into pre and post####
-safetyTFLA.R2.Pre <- safetyTFLA[which(safetyTFLA$Stage=="PRE"),] #1143 obs
+safetyTFLA.R2.Pre <- safetyTFLA.R2[which(safetyTFLA.R2$Stage=="PRE"),] #1143 obs
 #filter(safetyTFLA, Stage=="PRE") Can also do this way
 head(safetyTFLA.R2.Pre)
-safetyTFLA.R2.Post <- safetyTFLA[which(safetyTFLA$Stage=="POST"),] #1165 obs
+safetyTFLA.R2.Post <- safetyTFLA.R2[which(safetyTFLA.R2$Stage=="POST"),] #1165 obs
 head(safetyTFLA.R2.Post)
 
 # each observation has a unique identifier for both stages
 # can combine 
-safetyTFLA.R2.comb <- merge(safetyTFLA.R2.Pre, safetyTFLA.R2.Post, by=c("ID", "Trial"), all.x = TRUE)
+safetyTFLA.R2.comb <- merge(safetyTFLA.R2.Pre, safetyTFLA.R2.Post, by=c("Trial", "Treatment", "Exemplar", "Spp", "ID"), all.x = TRUE)
 head(safetyTFLA.R2.comb) #1159 obs, by adding in all.x, we don't lose trials with no recruits
 
 #Can double check with anti join but columns need to be the same, look later
 anti_join()
 
 #Remove duplicate columns
-safetyTFLA.R2.comb <- subset(safetyTFLA.R2.comb, select = c("Trial", "Treatment.x", "Exemplar.x", "Spp.x", "ID", "Distance.x", "Distance.y"))
+safetyTFLA.R2.comb <- safetyTFLA.R2.comb %>% select(!c(Stage.x, Stage.y))
 
 ###Just need to remove any rows with NAs
-#rename columns 
-names(safetyTFLA.R2.comb) <- c("Trial", "Treatment", "Exemplar", "Spp", "ID", "Pre.Dist", "Post.Dist")
+#rename columns
+safetyTFLA.R2.comb <- safetyTFLA.R2.comb %>% rename(Pre.Dist=Distance.x, Post.Dist=Distance.y)
 head(safetyTFLA.R2.comb)
+unique(safetyTFLA.R2.comb$Spp)
 
 ###order new data set to add 
 sapply(safetyTFLA.R2.comb, class)
@@ -547,11 +550,11 @@ head(TFLA.R1)
 head(TFLA.R2)
 
 ####Merge R1 and R2 responses into one data frame####
-TFLA.Rcomb <- merge(TFLA.R1, TFLA.R2, by= c("Trial", "Exemplar", "Treatment", "Forest.type"))
+TFLA.Rcomb <- merge(TFLA.R1, TFLA.R2, by= c("Trial", "Point", "Treatment", "Exemplar", "Forest.type"))
 head(TFLA.Rcomb)
 
 ###Order data frame
-TFLA.Rcomb <- TFLA.Rcomb[, c(1,3,2,4,5,6,7,8,9,10,11,12)]
+TFLA.Rcomb <- TFLA.Rcomb[, c(1,2,3,4,5,6,7,8,9,10,11,13,12)]
 TFLA.Rcomb$Trial <- as.numeric(TFLA.Rcomb$Trial)
 TFLA.Rcomb <- arrange(TFLA.Rcomb, Trial)
 #TFLA.Rcomb <- TFLA.Rcomb[order(TFLA.Rcomb$Trial),]
@@ -580,9 +583,8 @@ TFLA.Rcomb$Tr.Type <- gsub('[0-9.]', '', TFLA.Rcomb$Exemplar)
 
 ###Add trial location column
 head(TFLA.Rcomb)
-TFLA.Rcomb <- merge(TFLAmaster, TFLA.Rcomb, by="Trial")
 ###Order data frame
-TFLA.Rcomb <- TFLA.Rcomb[, c(1,3,4,2,5,6,7,8,9,10,11,12,13,14,15,16,17)]
+TFLA.Rcomb <- TFLA.Rcomb[, c(1,2,3,18,4,5,6,7,8,9,10,11,12,13,14,15,16,17)]
 
 ####Read TFLA.Rcomb in here####
 write.csv(TFLA.Rcomb, "TFLA.Rcomb.csv", row.names = FALSE)
