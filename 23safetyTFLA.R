@@ -102,6 +102,9 @@ head(pre.v.postTFLA30)
 pre.v.postTFLA30$Spp <- ifelse(pre.v.postTFLA30$Spp == "UK", pre.v.postTFLA30$ID, pre.v.postTFLA30$Spp)
 pre.v.postTFLA30$Spp <- ifelse(pre.v.postTFLA30$Spp == "UKCAN", pre.v.postTFLA30$ID, pre.v.postTFLA30$Spp)
 pre.v.postTFLA30$Spp <- ifelse(pre.v.postTFLA30$Spp == "UKCOL", pre.v.postTFLA30$ID, pre.v.postTFLA30$Spp)
+pre.v.postTFLA30$Spp[pre.v.postTFLA30$Spp=="UK5.1"] <- "UK5"
+pre.v.postVLA30$Spp[pre.v.postTFLA30$Spp=="UK5.2"] <- "UK5"
+unique(pre.v.postTFLA30$Spp)
 
 ###Reorder df
 ###Order data frame
