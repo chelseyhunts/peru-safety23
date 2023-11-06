@@ -27,6 +27,24 @@ safetyVLA$Trial <- as.numeric(safetyVLA$Trial)
 VAmaster <- subset(VAmaster, select = c("Prueba","Point"))
 names(VAmaster)[1] <- "Trial"
 
+#Remove duplicate trials
+VAmaster <- VAmaster %>% distinct(Trial, .keep_all = TRUE)
+
+###Add trial location column
+#First need to remove any spaces before or after trial number, as was adding extra
+#observations
+#library(stringr)
+#library(dplyr)
+safetyVLA <-  safetyVLA %>% mutate(Trial = str_squish(Trial))
+VAmaster <-  VAmaster %>% mutate(Trial = str_squish(Trial))
+safetyVLA <- merge(VAmaster, safetyVLA, by="Trial")
+
+#check for mistakes in spp, id, etc
+unique(safetyVLA$Spp)
+unique(safetyVLA$ID)
+
+write.csv(safetyVLA, "23safetycueVLA.csv", row.names = FALSE)
+
 ############Response 1################################################################
 #Absent in pre-trial within 30m, present within 30m in post-trial
 ####Remove anything greater than 30m distance Response 1#### Do we need to do this still??
@@ -89,6 +107,17 @@ head(pre.v.postVLA30)
 pre.v.postVLA30$Spp <- gsub('[0-9.]', '', pre.v.postVLA30$ID)
 head(pre.v.postVLA30)
 
+###Exchange UKs for their IDs
+pre.v.postVLA30$Spp <- ifelse(pre.v.postVLA30$Spp == "UK", pre.v.postVLA30$ID, pre.v.postVLA30$Spp)
+pre.v.postVLA30$Spp <- ifelse(pre.v.postVLA30$Spp == "UKCAN", pre.v.postVLA30$ID, pre.v.postVLA30$Spp)
+pre.v.postVLA30$Spp <- ifelse(pre.v.postVLA30$Spp == "UKCOL", pre.v.postVLA30$ID, pre.v.postVLA30$Spp)
+pre.v.postVLA30$Spp[pre.v.postVLA30$Spp=="UKCAN2.1"] <- "UKCAN2"
+pre.v.postVLA30$Spp[pre.v.postVLA30$Spp=="UKCAN2.2"] <- "UKCAN2"
+pre.v.postVLA30$Spp[pre.v.postVLA30$Spp=="UKCOL1.1"] <- "UKCOL1"
+pre.v.postVLA30$Spp[pre.v.postVLA30$Spp=="UKCOL1.2"] <- "UKCOL1"
+pre.v.postVLA30$Spp[pre.v.postVLA30$Spp=="UK1.1"] <- "UK1"
+pre.v.postVLA30$Spp[pre.v.postVLA30$Spp=="UK1.2"] <- "UK1"
+unique(pre.v.postVLA30$Spp)
 ###Reorder df
 ###Order data frame
 pre.v.postVLA30 <- pre.v.postVLA30[, c(1,2,3,7,4,5,6)]
@@ -167,7 +196,8 @@ Unique.trials<-unique(pre.v.postVLA30$Trial)
 #Start for loop
 for(i in Unique.trials){
   Trial<-subset(pre.v.postVLA30, pre.v.postVLA30$Trial==i) 
-  Species.no<-length(unique(pre.v.postVLA30$Spp[which(pre.v.postVLA30$Trial==i & pre.v.postVLA30$Pre.count>=1 | pre.v.postVLA30$Post.count>=1 & pre.v.postVLA30$Trial==i)]))
+  Species.no<-length(unique(pre.v.postVLA30$Spp[which(pre.v.postVLA30$Trial==i & pre.v.postVLA30$Pre.count>=1 | 
+                                                        pre.v.postVLA30$Post.count>=1 & pre.v.postVLA30$Trial==i)]))
   Spp.per.trial<-c(Spp.per.trial, Species.no) 
 }
 #Create date frame of spp per trial #
@@ -223,8 +253,16 @@ VLA.R1 <- VLA.R1[order(VLA.R1$Trial),]
 ###Add trial location column
 head(VLA.R1)
 VLA.R1 <- merge(VAmaster, VLA.R1, by="Trial")
+
+###Add Forest type column
+VLA.R1$Forest.type <- rep("VA")
+
+###Rename responses as response 1 to prepare for combination with Response 2
+names(VLA.R1)[5:8] <- c("R1.recruit", "R1.spp.per.trial", "R1.spp.rec.per.trial", "R1.prop.rec")
+head(VLA.R1)
+
 ###Order data frame
-VLA.R1 <- VLA.R1[, c(1,2,3,4,9,5,6,7,8)]
+VLA.R1 <- VLA.R1 %>% select(1,2,3,4,9,5,6,7,8)
 
 ####Write final Response 1 time 1 new csv/Read in####
 write.csv(VLA.R1, "VLA.R1.csv", row.names = FALSE)
@@ -233,22 +271,16 @@ head(VLA.R1)
 
 ###Plot using ggplot
 
-prop.plotVLA.R1 <- ggplot(VLA.R1, aes(Treatment, Prop.rec)) + geom_boxplot(aes(fill=Treatment)) + theme_bw() +labs(title="Varzea Response 1", x="Treatment", y="Proportion Recruits") + guides(fill=guide_legend(title="Treatment Group")) + stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
+prop.plotVLA.R1 <- ggplot(VLA.R1, aes(Treatment, R1.prop.rec)) + 
+  geom_boxplot(aes(fill=Treatment)) + 
+  theme_bw() +labs(title="Varzea Response 1", x="Treatment", y="Proportion Recruits") + 
+  guides(fill=guide_legend(title="Treatment Group")) + 
+  stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
 
-num.plotVLA.R1 <- ggplot(VLA.R1, aes(Treatment, Recruit)) + geom_boxplot(aes(fill=Treatment)) + theme_bw() +labs(title="Varzea Response 1", x="Treatment", y="Number of Recruits") + guides(fill=guide_legend(title="Treatment Group")) + stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
-
-###Add Forest type column
-VLA.R1$Forest.type <- rep("VA")
-head(VLA.R1)
-
-###Rename responses as response 1 to prepare for combination with Response 2
-names(VLA.R1)[4:7] <- c("R1.recruit", "R1.spp.per.trial", "R1.spp.rec.per.trial", "R1.prop.rec")
-head(VLA.R1)
-
-####Write csv for VLA R1 both times####
-write.csv(VLA.R1, "VLA.R1.csv", row.names = FALSE)
-VLA.R1 <- read.csv("VLA.R1.csv")
-head(VLA.R1)
+num.plotVLA.R1 <- ggplot(VLA.R1, aes(Treatment, R1.recruit)) + geom_boxplot(aes(fill=Treatment)) +
+  theme_bw() +labs(title="Varzea Response 1", x="Treatment", y="Number of Recruits") + 
+  guides(fill=guide_legend(title="Treatment Group")) + 
+  stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
 
 ####Plot comb VLA.R1####
 p1V <- ggplot(VLA.R1, aes(x=Treatment, y=R1.prop.rec, fill=Treatment)) + 
@@ -281,7 +313,6 @@ annotate_figure(pcombV, top = text_grob("Response 1 in Varzea",
 ####Subset data frame for variables of interest####
 
 safetyVLA <- read.csv("23safetycueVLA.csv")
-safetyVLA <- subset(safetyVLA, select = c("Trial","Treatment", "Exemplar","Stage","Spp", "ID", "Distance"))
 head(safetyVLA)
 
 ####Subset dataframe for variables of interest Resp2####
@@ -292,29 +323,39 @@ head(safetyVLA)
 
 safetyVLA.R2 <- safetyVLA
 head(safetyVLA.R2)
-unique(safetyVLA.R2$Stage)
+
+###Exchange UKs for their IDs
+safetyVLA.R2$Spp <- ifelse(safetyVLA.R2$Spp == "UK", safetyVLA.R2$ID, safetyVLA.R2$Spp)
+safetyVLA.R2$Spp <- ifelse(safetyVLA.R2$Spp == "UKCAN", safetyVLA.R2$ID, safetyVLA.R2$Spp)
+safetyVLA.R2$Spp <- ifelse(safetyVLA.R2$Spp == "UKCOL", safetyVLA.R2$ID, safetyVLA.R2$Spp)
+safetyVLA.R2$Spp[safetyVLA.R2$Spp=="UKCAN2.1"] <- "UKCAN2"
+safetyVLA.R2$Spp[safetyVLA.R2$Spp=="UKCAN2.2"] <- "UKCAN2"
+safetyVLA.R2$Spp[safetyVLA.R2$Spp=="UKCOL1.1"] <- "UKCOL1"
+safetyVLA.R2$Spp[safetyVLA.R2$Spp=="UKCOL1.2"] <- "UKCOL1"
+safetyVLA.R2$Spp[safetyVLA.R2$Spp=="UK1.1"] <- "UK1"
+safetyVLA.R2$Spp[safetyVLA.R2$Spp=="UK1.2"] <- "UK1"
+unique(safetyVLA.R2$Spp)
 ####Split dataframe into pre and post####
-safetyVLA.R2.Pre <- safetyVLA[which(safetyVLA$Stage=="PRE"),] #1166 obs 
+safetyVLA.R2.Pre <- safetyVLA.R2[which(safetyVLA.R2$Stage=="PRE"),] #1166 obs 
 #filter(safetyTFLA, Stage=="PRE") Can also do this way
 head(safetyVLA.R2.Pre)
-safetyVLA.R2.Post <- safetyVLA[which(safetyVLA$Stage=="POST"),] #1166 obs
+safetyVLA.R2.Post <- safetyVLA.R2[which(safetyVLA.R2$Stage=="POST"),] #1166 obs
 head(safetyVLA.R2.Post)
 
 # each observation has a unique identifier for both stages
 # can combine 
-safetyVLA.R2.comb <- merge(safetyVLA.R2.Pre, safetyVLA.R2.Post, by=c("Trial", "Treatment", "Exemplar", "Spp", "ID"), all.x = TRUE)
+safetyVLA.R2.comb <- merge(safetyVLA.R2.Pre, safetyVLA.R2.Post, by=c("Trial", "Point", "Treatment", "Exemplar", "Spp", "ID"), all.x = TRUE)
 head(safetyVLA.R2.comb) #1159 obs, by adding in all.x, we don't lose trials with no recruits
 
 #Can double check with anti join but columns need to be the same, look later
 #anti_join()
 
 #Remove duplicate columns
-safetyVLA.R2.comb <- subset(safetyVLA.R2.comb, select = c("Trial", "Treatment", "Exemplar", "Spp", "ID", "Distance.x", "Distance.y"))
+safetyVLA.R2.comb <- safetyVLA.R2.comb %>% select(!c(Stage.x, Stage.y))
 
 ###Just need to remove any rows with NAs
-#rename columns 
-names(safetyVLA.R2.comb) <- c("Trial", "Treatment", "Exemplar", "Spp", "ID", "Pre.Dist", "Post.Dist")
-head(safetyVLA.R2.comb)
+#rename columns
+safetyVLA.R2.comb <- safetyVLA.R2.comb %>% rename(Pre.Dist=Distance.x, Post.Dist=Distance.y)
 
 ###order new data set to add 
 sapply(safetyVLA.R2.comb, class)
@@ -435,10 +476,17 @@ safetyVLA.prop.R2$R2.prop.rec <- safetyVLA.prop.R2$R2.spp.rec.per.trial/safetyVL
 ###Check it out...
 head(safetyVLA.prop.R2)
 #Good!
+##Replace NAs in R2 recruits with 0s
+safetyVLA.R2.comb$R2.recruit[is.na(safetyVLA.R2.comb$R2.recruit)]<-0
+
+###Add column for solo types
+safetyVLA.R2.comb$Tr.Type <- gsub('[0-9.]', '', safetyVLA.R2.comb$Exemplar)
+safetyVLA.R2.comb <-  safetyVLA.R2.comb %>% relocate(Tr.Type, .after = Treatment)
 
 ####Read in safetyVLA.R2.comb here####
 head(safetyVLA.R2.comb)
 write.csv(safetyVLA.R2.comb, "safetyVLA.R2.comb.csv", row.names = FALSE)
+
 
 safetyVLA.R2.comb <- read.csv("safetyVLA.R2.comb.csv")
 
@@ -451,9 +499,6 @@ nrow(safetyVLA.prop.R2)
 ####Add number of recruits to this safety TFLA.prop.R2####
 #aggregate here
 head(safetyVLA.R2.comb)
-
-##Replace NAs in R2 recruits with 0s
-safetyVLA.R2.comb$R2.recruit[is.na(safetyVLA.R2.comb$R2.recruit)]<-0
 
 ###Sum by trial using aggregate function, then run through Alex code to add trtmt group
 safetyVLA.rec.R2 <- aggregate(R2.recruit~ Trial+Exemplar+Treatment, safetyVLA.R2.comb, sum)
@@ -481,6 +526,10 @@ head(VLA.R2)
 VLA.R2 <- merge(VAmaster, VLA.R2, by="Trial")
 ###Order data frame
 VLA.R2 <- VLA.R2[, c(1,2,3,7,9,8,4,5,6)]
+###Add column for solo types
+VLA.R2$Tr.Type <- gsub('[0-9.]', '', VLA.R2$Exemplar)
+###ORDER DF
+VLA.R2 <-  VLA.R2 %>% relocate(Tr.Type, .after = Treatment)
 
 ###Read in VLA.R2 here####
 write.csv(VLA.R2, "VLA.R2.csv", row.names = FALSE)
@@ -525,11 +574,10 @@ head(VLA.R1)
 head(VLA.R2)
 
 ####Merge R1 and R2 responses into one data frame####
-VLA.Rcomb <- merge(VLA.R1, VLA.R2, by= c("Trial", "Exemplar", "Treatment", "Forest.type"))
+VLA.Rcomb <- merge(VLA.R1, VLA.R2, by= c("Trial", "Point", "Treatment", "Exemplar", "Forest.type"))
 head(VLA.Rcomb)
 
 ###Order data frame
-VLA.Rcomb <- VLA.Rcomb[, c(1,3,2,4,5,6,7,8,9,10,11,12)]
 VLA.Rcomb$Trial <- as.numeric(VLA.Rcomb$Trial)
 VLA.Rcomb <- arrange(VLA.Rcomb, Trial)
 #TFLA.Rcomb <- TFLA.Rcomb[order(TFLA.Rcomb$Trial),]
@@ -555,17 +603,8 @@ VLA.Rcomb$Exemplar[VLA.Rcomb$Exemplar == "VA5"] <- "CTRL5"
 VLA.Rcomb$Exemplar[VLA.Rcomb$Exemplar == "VA4"] <- "CTRL4"
 VLA.Rcomb$Exemplar[VLA.Rcomb$Exemplar == "VA2"] <- "CTRL2"
 
-###Add column for solo types
-VLA.Rcomb$Tr.Type <- gsub('[0-9.]', '', VLA.Rcomb$Exemplar)
-
 ###Order data frame
-#TFLA.Rcomb <- TFLA.Rcomb[, c(1,2,3,4,5,6,7,15,8,9,16,17,12,13,14)]
-
-###Add trial location column
-head(VLA.Rcomb)
-###Order data frame
-VLA.Rcomb <- VLA.Rcomb[, c(1,2,17,3,4,5,6,7,8,9,10,11,12,13,14,15,16)]
-VLA.Rcomb <- merge(VAmaster, VLA.Rcomb, by="Trial")
+VLA.Rcomb <- VLA.Rcomb %>% relocate(Tr.Type, .after = Treatment)
 
 ####Read VLA.Rcomb in here####
 write.csv(VLA.Rcomb, "VLA.Rcomb.csv", row.names = FALSE)
@@ -630,13 +669,6 @@ safetyVLA.R2.comb$Trial <- as.numeric(safetyVLA.R2.comb$Trial)
 safetyVLA.R2.comb$Pre.Dist <- as.numeric(safetyVLA.R2.comb$Pre.Dist)
 safetyVLA.R2.comb$Post.Dist <- as.numeric(safetyVLA.R2.comb$Post.Dist)
 
-###Update all treatments as there are some controls labeled VA
-unique(safetyVLA.R2.comb$Exemplar)
-safetyVLA.R2.comb$Exemplar[safetyVLA.R2.comb$Exemplar == "VA5"] <- "CTRL5"
-safetyVLA.R2.comb$Exemplar[safetyVLA.R2.comb$Exemplar == "VA4"] <- "CTRL4"
-safetyVLA.R2.comb$Exemplar[safetyVLA.R2.comb$Exemplar == "VA3"] <- "CTRL3"
-safetyVLA.R2.comb$Exemplar[safetyVLA.R2.comb$Exemplar == "VA2"] <- "CTRL2"
-
 #Remove spp not seen in both pre and post
 net.dist.VLA <- na.omit(safetyVLA.R2.comb)
 head(net.dist.VLA)
@@ -645,15 +677,8 @@ head(net.dist.VLA)
 #negative number is away, positive number is toward
 net.dist.VLA$Net.Dist <- net.dist.VLA$Pre.Dist - net.dist.VLA$Post.Dist
 
-###Add column for solo types
-net.dist.VLA$Tr.Type <- gsub('[0-9.]', '', net.dist.VLA$Exemplar)
-
-###Add column for trial location
-net.dist.VLA <- merge(VAmaster, net.dist.VLA, by="Trial")
-head(net.dist.VLA)
-
 ###Order data frame
-net.dist.VLA <- net.dist.VLA[, c(1,2,3,12,4,10,5,6,7,8,9,11)]
+net.dist.VLA <- net.dist.VLA %>% relocate(Forest.type, .after = Exemplar)
 
 ###Read net.dist.VLA csv in here####
 write.csv(net.dist.VLA, "net.dist.VLA23.csv", row.names = FALSE)
