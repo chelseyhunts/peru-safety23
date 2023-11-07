@@ -4,6 +4,9 @@
 #library MuMIn --install for model selection
 #install.packages("MuMIn")
 library(MuMIn)
+#matrix dependent package
+#install.packages("Matrix")
+library(Matrix)
 #glmm package
 library(lme4)
 #plotting model predictions
@@ -27,7 +30,7 @@ Safety23 <- rbind(TFLA.Rcomb, VLA.Rcomb)
 head(Safety23)
 unique(Safety23$Forest.type)
 write.csv(Safety23, "Safety23.csv", row.names = FALSE)
-Safety23 <- read.csv("Safety23.csv")
+Safety23 <- read.csv("Safety23.csv", header = TRUE, stringsAsFactors = TRUE)
 
 
 #reorder the groups order : I change the order of the factor data$names to order plot
@@ -84,13 +87,8 @@ p.ALL.type
 annotate_figure(p.ALL.type, top = text_grob("Response 1 & 2 in Both Forest Types", 
                                        color = "black", face = "bold", size = 20))
 
-p.ALL.type <- ggarrange(prop.plot.all.type, num.plot.all.type,
-                        labels = c("C", "D"),
-                        ncol=1, nrow=2, 
-                        legend = "none")
 
-
-###Net dist combine
+###Net dist combine####
 net.dist.VLA <- read.csv("net.dist.VLA23.csv")
 head(net.dist.VLA)
 net.dist.TFLA <- read.csv("net.dist.TFLA23.csv")
@@ -163,8 +161,9 @@ unique(Safety23$Treatment)
 ###Model number of recruits with all treatments####
 #Run glmm for total recruits
 #glmer(response~fixed.exp.var+fixedexp.var+(1|random.exp.var)), family = "", data = dataframe
-control_params <- glmerControl(optimizer="bobyqa", optCtrl = list(maxfun=2000))
-M1<-glmer(Total.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
+control_params <- glmerControl(optimizer="bobyqa", optCtrl = list(maxfun=1000, nAGQ = 10, calc.derivs=TRUE))
+M1<-glmer(Total.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23,
+          control = glmerControl(optimizer = "bobyqa"))
 M2<-glmer(Total.Recs~Treatment+Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
 M3<-glmer(Total.Recs~Treatment + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
 M4<-glmer(Total.Recs~Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
@@ -215,7 +214,7 @@ MN3<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=solo.trmt
 
 # Iterate through a set of optimizers, report convergence results
 #check first model of solo only with convergence problem
-diff_optims <- allFit(M9, maxfun = 1e5)
+diff_optims <- allFit(M1, maxfun = 1e5)
 
 #Set up to print which optimizers will work -- if null printed, good to use
 diff_optims_OK <- diff_optims[sapply(diff_optims, is, "merMod")]
@@ -337,12 +336,16 @@ ggplot(ggpred, aes(x, predicted)) +
 #Use same dataframes created in previous section, solo.trmts, group.trmts, and all safety23
 head(solo.trmts)
 ####First test assumptions####
+#Can use DHARMa package to cheeck residuals after running model
 #1: response follows beta distribution, not really a way to do for the categorical predictors
 # Create a density plot for each category --doesn't show distribution but to explore
 #distribution of response variable within different categories
-ggplot(solo.trmts, aes(x = Total.Recs, fill = Tr.Type)) +
+ggplot(solo.trmts, aes(x = Total.prop.rec, fill = Tr.Type)) +
   geom_density(alpha = 0.6) +
   labs(title = "Density Plot of Response by Category")
+
+hist(Safety23$Total.prop.rec)
+
 
 #2: check heteroskedasticity -- unequal variability of the response var across diff
 #levels of predictors
@@ -351,19 +354,33 @@ ggplot(solo.trmts, aes(x = Total.Recs, fill = Tr.Type)) +
 ####Model specifications####
 #Fixed effects: treatment/tr.type, forest.type
 #Random effects: exemplar, point
+Safety23 <- read.csv("Safety23.csv", header = TRUE, stringsAsFactors = TRUE)
 
 ####Fit model beta reg for prop recruits####
 #model <- glmmTMB(response_variable ~ predictor1 + predictor2 + (1 | random_effect1) + (1 | random_effect2), 
 #family = beta_family(link = "logit"), data = your_data)
+#needed to remove and update package remove.packages("glmmTMB")
+#install.packages("glmmTMB")
+#tried using just this package, didn't help the problem bc matrix was not compatible install.packages("TMB")
+library(glmmTMB)
+library(TMB)
+# needed to update matrix package to be able to run glmmtmb install.packages("Matrix")
+library(Matrix)
+# needed to install in terminal -- install.packages("gfortran")
+sapply(Safety23, class)
+any(is.na(Safety23$Total.prop.rec))
+
+
 
 B1<-glmmTMB(Total.prop.rec~Treatment+Forest.type+(1|Exemplar) + (1|Point),
             family=beta_family(link = "logit"), data=Safety23)
-M2<-glmer(Total.prop.rec~Treatment+(1|Exemplar),family="binomial",data=Safety23)
-#model.indglobal<-glmer(Total.Recs~Time+(1|treatments),family="poisson",data=rec.trialall)
-M.null<-glmer(Total.prop.~1+(1|Exemplar),family="poisson",data=Safety23)
+B2<-glmmTMB(Total.prop.rec~Treatment+(1|Exemplar) + (1|Point),
+            family=beta_family(link = "logit"), data=Safety23)
+
+BN1<-glmmTMB(Total.prop.rec~1, family=beta_family(link = "logit"), data=Safety23)
 selection<-model.sel(M1, M2, M.null)
 
-####Model assessment####
+####beta reg Model assessment####
 #assess model fit by examining resids and goodness of fit measures
 ####Interpretation####
 #interpret fixed effects to understand relationship between predictors and response vars
@@ -375,18 +392,41 @@ selection<-model.sel(M1, M2, M.null)
 #examine diagnostic plots sa resid plots, to check model assumptions
 #identify any patterns or issues in the data that may require further investigation
 
-###Model selection net distance####
+###Modeling net distance####
 ##lmem or lm
-net.dist23 <- read.csv("net.dist23.csv")
+net.dist23 <- read.csv("net.dist23.csv", stringsAsFactors = TRUE)
 head(net.dist23)
 
+##split net.dist into group trmts and solo.trmts
+solo.trmts <- net.dist23 %>% filter(!Tr.Type=="MSF" & !Tr.Type=="NF")
+group.trmts <- net.dist23 %>% filter(!Treatment=="MSFSOLO" & !Treatment=="NFSOLO")
+
+####Plot net.dist####
+library(ggplot2)
+library(ggpubr)
+library(tidyverse)
+#####plot nest dist by treatment group####
+ggplot(net.dist23, aes(Treatment, Net.Dist)) + geom_boxplot(aes(fill=Treatment), show.legend = FALSE) +labs(x="Treatment", y="Net Dist Moved (m)") + theme_bw() +
+  theme(axis.title = element_text(size = 15))+ stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
+
+#####plots net dist by treatment type####
+
+ggplot(net.dist23, aes(Tr.Type, Net.Dist)) + geom_boxplot(aes(fill=Tr.Type), show.legend = FALSE) + theme_bw() + theme(axis.title = element_text(size=15)) + 
+  labs(x="Treatment", y="Net Dist Moved (m)") + stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
+
 #m.dist1 <- lmer(Net.Dist~Treatment+Forest.type+Forest.Type*Treatment+(1|Exemplar),data = net.dist23)
-m.dist1 <- lmer(Net.Dist~Treatment+Forest.type+(1|Point), data = net.dist23)
-m.dist1 <- lm(Net.Dist~Treatment+Forest.type+Forest.type*Treatment,data = net.dist23) #check assumptions, log transform?
+L1 <- lmer(Net.Dist~Treatment+Forest.type+Forest.type*Treatment+(1|Point), data = net.dist23)
+#error of boundary (singular) fit, check for multicollinearity, however issue is likely with random effects
+chi_squared <- chisq.test(net.dist23$Treatment, net.dist23$Forest.type)
+print(chi_squared) #p=0.84, this suggests no strong relationship between the two effects
+#unlikely multicollinearity is an issue
+summary(L1)
+
+L2 <- lmer(Net.Dist~Treatment+Forest.type+Forest.type*Treatment,data = net.dist23) #check assumptions, log transform?
 m.distnull <- lmer(Net.Dist~1+(1|Exemplar), data = net.dist23)
 help("isSingular") #not sure about that
 summary(m.distnull)
-summary(m.dist1)
+
 anova(m.dist1)
 
 
@@ -395,12 +435,12 @@ anova(m.dist1)
 #Will return residuals around the regression line/linear model
 #Plot histogram
 #hist(resid(m1), probability = TRUE)
-hist(resid(m.dist1), probability = TRUE)
-resids <- resid(m.dist1)
+hist(resid(L1), probability = TRUE)
+resids <- resid(L1)
 mean(resids)
 
 curve(dnorm(x, mean=mean(resids), sd=sd(resids) ),from=-50,to=50,add=TRUE)
-#Normalish
+#Normalish but have a long tail to the left
 
 qqnorm(resids)
 qqline(resids)
@@ -414,20 +454,20 @@ shapiro.test(resids)
 
 #Are the variances equal enough at all levels of X? 
 #Assess via scatterplot, using temp as X, and resids as Y
+#categories must be factors
 plot(net.dist23$Treatment, resids, xlab = "Treatment")
-#not sure how to run this one...changing treatment/forest type to factor seemed to fix this
 plot(net.dist23$Forest.type, resids, xlab = "Forest Type")
+#variance seems equal enough
 
 library(car)
 #Variance among groups using Formal test 
-#not sure how to run this one...
+#H0: variances equal, HA: variances not equal
 sapply(net.dist23, class)
-net.dist23$Forest.type <- as.factor(net.dist23$Forest.type)
-leveneTest(resids, net.dist23$Forest.type) 
-net.dist23$Treatment <- as.factor(net.dist23$Treatment)
-leveneTest(resids, net.dist23$Treatment) 
+leveneTest(resids, net.dist23$Forest.type)  #p=0.23
+leveneTest(resids, net.dist23$Treatment) #p=0.28
 #Variance is equal for both fixed variables
 
+####Transform data####
 #Make new transformed variable and add to dataframe #***This produces NaNs and 
 # -inf, how to deal with this??
 net.dist23$l.dist <- log(net.dist23$Net.Dist)
@@ -440,7 +480,7 @@ CubeRoot<-function(x){
 }
 net.dist23$cube_nd <- CubeRoot(net.dist23$Net.Dist)
 
-#Reassess assumptions for transformed MO2 values, 
+#Reassess assumptions for transformed values, 
 
 #m2 <- lmer(logResponse~Fixed+(1|Random), data = dataframe)
 m.dist2 <- lmer(cube_nd~Treatment+Forest.type+(1|Point),data = net.dist23)
