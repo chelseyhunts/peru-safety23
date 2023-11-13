@@ -9,10 +9,14 @@ library(MuMIn)
 library(Matrix)
 #glmm package
 library(lme4)
+#betareg package
+library(glmmTMB)
 #plotting model predictions
 library(ggplot2)
 #install.packages("ggeffects")
 library(ggeffects)
+#annotating plots
+library(ggpubr)
 library(tidyverse)
 #install.packages("optimx")
 library(optimx)
@@ -20,6 +24,42 @@ library(optimx)
 library(minqa)
 #install.packages("dfoptim")
 library(dfoptim)
+
+###Combine plots for side by side of no and prop recruits for both forest types
+#First need to remove axis titles
+
+P1 <- prop.plotTFLAcomb + theme(axis.title.x = element_blank())
+P2 <- ggplot(subset(VLA.Rcomb,Treatment%in% c("MSF","CTRL","NF")),
+             aes(x=Treatment, y=Total.prop.rec, fill=Treatment)) + 
+  geom_boxplot(show.legend = FALSE) +
+  labs(y="") + theme_bw() +
+  theme(axis.title.x = element_blank(), axis.title = element_text(size = 20)) +
+  scale_fill_brewer(palette = "Paired")+
+  guides(fill=guide_legend(title="Treatment Group")) + 
+  stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black") 
+N1 <- ggplot(subset(TFLA.Rcomb, Treatment %in% c("MSF", "CTRL", "NF")), 
+             aes(x=Treatment, y=Total.Recs, fill=Treatment)) + 
+  geom_boxplot(show.legend = FALSE) +
+  labs(x="Tierra Firme", y="No. Recruits") + 
+  guides(fill=guide_legend(title="Treatment Group")) + 
+  scale_fill_brewer(palette = "Paired") +
+  stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black") + theme_bw()+
+  theme(axis.title = element_text(size = 20))+
+  ylim(NA, 12.5)
+N2 <- ggplot(subset(VLA.Rcomb,Treatment%in% c("MSF","CTRL","NF")), aes(x=Treatment, y=Total.Recs, fill=Treatment)) + 
+  geom_boxplot(show.legend = FALSE) +
+  labs(x="Varzea",y="") + 
+  guides(fill=guide_legend(title="Treatment Group")) + 
+  scale_fill_brewer(palette = "Paired")+
+  stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black") + theme_bw() +
+  theme(axis.title = element_text(size=20)) +
+  ylim(NA,12.5)
+
+pcombRcomb <- ggarrange(P1, P2, N1, N2,
+                         labels = c("A","B","C", "D"),
+                         ncol=2, nrow=2, 
+                         common.legend = TRUE, legend = "right")
+pcombRcomb
 
 ###Response 1 & 2 Combine####
 head(TFLA.Rcomb)
@@ -31,7 +71,6 @@ head(Safety23)
 unique(Safety23$Forest.type)
 write.csv(Safety23, "Safety23.csv", row.names = FALSE)
 Safety23 <- read.csv("Safety23.csv", header = TRUE, stringsAsFactors = TRUE)
-
 
 #reorder the groups order : I change the order of the factor data$names to order plot
 Safety23$Tr.Type <- factor(Safety23$Tr.Type , levels=c("CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
@@ -142,7 +181,7 @@ annotate_figure(V.net.dist.all, top = text_grob("",
                                                 color = "black", face = "bold", size = 20))
 
 
-###Model Selection number/prop recruits####
+###Model GLMM: number of recruits####
 ##Hypotheses, Predictions####
 #H1: MSF spp provide better safety information to the bird community relative to other forest birds
   #P1: There will be a higher response to MSF vocalizations than to non-flock vocalizations
@@ -268,7 +307,7 @@ library(TMB)
 #ratio-- chisq/resid degrees of freedom, want to be close to 1
 #rdf--resid degrees freedom
 #p-val--H0: no overdispersion, HA: overdispersion
-overdisp_fun(M9) 
+overdisp_fun(B1) 
 
 ####Predict values and plot for number of recruits####
 ##Run model
@@ -329,7 +368,7 @@ ggpred <- as.data.frame(ggpred)
 ggplot(ggpred, aes(x, predicted)) +
   geom_point(aes(color=group))
 
-###Run beta reg for proportion of recruits#### 
+###Beta regression for proportion of recruits#### 
 #beta regression (with mixed effects)
 #Need package to run mixed effects beta reg
 #library("glmmTMB") 
@@ -370,15 +409,23 @@ library(Matrix)
 sapply(Safety23, class)
 any(is.na(Safety23$Total.prop.rec))
 
+##Issue of having 0s and 1s in response variable, need to transform
+#Will try to add 0.000000000001 to zeros, and there are no 1s
+#Make new column to retain original props
+Safety23$Tr.prop <- Safety23$Total.prop.rec
+#Add small amount to zeros
+Safety23$Tr.prop[which(Safety23$Total.prop.rec==0)] <- 1e-14
 
 
-B1<-glmmTMB(Total.prop.rec~Treatment+Forest.type+(1|Exemplar) + (1|Point),
-            family=beta_family(link = "logit"), data=Safety23)
+##Run models
+B1<-glmmTMB(Tr.prop~Tr.Type+Forest.type+(1|Exemplar) + (1|Point),
+            family=beta_family(link = "logit"), data=solo.trmts)
 B2<-glmmTMB(Total.prop.rec~Treatment+(1|Exemplar) + (1|Point),
             family=beta_family(link = "logit"), data=Safety23)
 
 BN1<-glmmTMB(Total.prop.rec~1, family=beta_family(link = "logit"), data=Safety23)
 selection<-model.sel(M1, M2, M.null)
+summary(B1)
 
 ####beta reg Model assessment####
 #assess model fit by examining resids and goodness of fit measures

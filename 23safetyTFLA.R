@@ -565,12 +565,22 @@ TFLA.Rcomb <- arrange(TFLA.Rcomb, Trial)
 ####Now combine R1 and R2 recruits####
 TFLA.Rcomb$Total.Recs <- TFLA.Rcomb$R2.recruit+TFLA.Rcomb$R1.recruit
 
-num.plotTFLAcomb <- ggplot(TFLA.Rcomb, aes(x=Treatment, y=Total.Recs, fill=Treatment)) + 
+#Reorder treatments for plotting
+TFLA.Rcomb$Treatment <- factor(TFLA.Rcomb$Treatment,
+                       levels =  c("CTRL","NF", "NFSOLO", "MSF", "MSFSOLO"))
+
+
+num.plotTFLAcomb <- ggplot(subset(TFLA.Rcomb, Treatment %in% c("MSF", "CTRL", "NF")), 
+                           aes(x=Treatment, y=Total.Recs, fill=Treatment)) + 
   geom_boxplot(show.legend = FALSE) +
-  labs(x="Treatment", y="Number of Recruits") + 
+  labs(x="Treatment", y="No. Recruits") + 
   guides(fill=guide_legend(title="Treatment Group")) + 
+  scale_fill_brewer(palette = "Paired") +
   stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black") + theme_bw()+
-  theme(axis.title = element_text(size = 15)) 
+  theme(axis.title = element_text(size = 20))+
+  ylim(NA, 12.5)
+
+num.plotTFLAcomb 
 
 ####Now combine R1 and R2 spp per trial, spp rec per trial, prop recs####
 head(TFLA.Rcomb)
@@ -598,12 +608,15 @@ sapply(TFLA.Rcomb, class)
 TFLA.Rcomb$Tr.Type <- factor(TFLA.Rcomb$Tr.Type , levels=c("CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
 
 ###Plot TFLA comb prop
-prop.plotTFLAcomb <- ggplot(TFLA.Rcomb, aes(x=Treatment, y=Total.prop.rec, fill=Treatment)) + 
+prop.plotTFLAcomb <- ggplot(subset(TFLA.Rcomb, Treatment %in% c("MSF","CTRL","NF")), 
+                            aes(x=Treatment, y=Total.prop.rec, fill=Treatment)) + 
   geom_boxplot(show.legend = FALSE) +
-  labs(y="Proportion of Recruits") +
+  labs(y="Proportion Recruits") +
   guides(fill=guide_legend(title="Treatment Group")) + 
+  scale_fill_brewer(palette = "Paired") +
   stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black") + theme_bw() +
-  theme(axis.title = element_text(size = 15), axis.title.x = element_blank()) 
+  theme(axis.title = element_text(size = 20), axis.title.x = element_blank()) +
+  ylim(NA,0.5) 
 
 prop.plotTFLAcomb
 

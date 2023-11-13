@@ -585,12 +585,18 @@ VLA.Rcomb <- arrange(VLA.Rcomb, Trial)
 ####Now combine R1 and R2 recruits####
 VLA.Rcomb$Total.Recs <- VLA.Rcomb$R2.recruit+VLA.Rcomb$R1.recruit
 
-num.plotVLAcomb <- ggplot(VLA.Rcomb, aes(x=Treatment, y=Total.Recs, fill=Treatment)) + 
+#Reorder treatments for plotting
+VLA.Rcomb$Treatment <- factor(VLA.Rcomb$Treatment,
+                               levels =  c("CTRL","NF", "NFSOLO", "MSF", "MSFSOLO"))
+
+num.plotVLAcomb <- ggplot(subset(VLA.Rcomb,Treatment%in% c("MSF","CTRL","NF")), aes(x=Treatment, y=Total.Recs, fill=Treatment)) + 
   geom_boxplot(show.legend = FALSE) +
-  labs(x="Treatment", y="Number of Recruits") + 
+  labs(x="Treatment", y="No. Recruits") + 
   guides(fill=guide_legend(title="Treatment Group")) + 
+  scale_fill_brewer(palette = "Paired")+
   stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black") + theme_bw() +
-  theme(axis.title = element_text(size=15)) 
+  theme(axis.title = element_text(size=20)) +
+  ylim(NA,12.5)
 
 ####Now combine R1 and R2 spp per trial, spp rec per trial, prop recs####
 head(VLA.Rcomb)
@@ -613,12 +619,15 @@ VLA.Rcomb <- read.csv("VLA.Rcomb.csv")
 VLA.Rcomb$Tr.Type <- factor(VLA.Rcomb$Tr.Type , levels=c("CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
 
 ###Plot VLA comb prop
-prop.plotVLAcomb <- ggplot(VLA.Rcomb, aes(x=Treatment, y=Total.prop.rec, fill=Treatment)) + 
+prop.plotVLAcomb <- ggplot(subset(VLA.Rcomb,Treatment%in% c("MSF","CTRL","NF")),
+                           aes(x=Treatment, y=Total.prop.rec, fill=Treatment)) + 
   geom_boxplot(show.legend = FALSE) +
-  labs(y="Proportion of Recruits") + theme_bw() +
-  theme(axis.title.x = element_blank(), axis.title = element_text(size = 15)) +
+  labs(y="Proportion Recruits") + theme_bw() +
+  theme(axis.title.x = element_blank(), axis.title = element_text(size = 20)) +
+  scale_fill_brewer(palette = "Paired")+
   guides(fill=guide_legend(title="Treatment Group")) + 
-  stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
+  stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black") 
+
 
 prop.plotVLAcomb
 
