@@ -12,12 +12,12 @@ library(lme4)
 #betareg package
 library(glmmTMB)
 #plotting model predictions
-library(ggplot2)
+library(ggplot2) #loaded in tidyverse
 #install.packages("ggeffects")
 library(ggeffects)
 #annotating plots
 library(ggpubr)
-library(tidyverse)
+library(tidyverse) #for use of dplyr and ggplot
 #install.packages("optimx")
 library(optimx)
 #install.packages("minqa")
@@ -61,6 +61,62 @@ pcombRcomb <- ggarrange(P1, P2, N1, N2,
                          common.legend = TRUE, legend = "right")
 pcombRcomb
 
+###Plot TFLA response 1&2 by treatment type####
+N3 <- ggplot(TFLA.Rcomb, aes(x=Tr.Type, y=Total.Recs, fill=Tr.Type)) + 
+  geom_boxplot(show.legend = FALSE) +
+  labs(x="Tierra Firme", y="No. Recruits") + 
+  stat_summary(fun=mean, geom="point", shape=15, size=2, color="black", fill="black") + theme_bw() +
+  theme(axis.title = element_text(size = 20)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 10), 
+        axis.text.y = element_text(size = 15)) + ylim(NA, 16)
+
+###Plot TFLA proportion response 1&2 by treatment type####
+P3 <- ggplot(TFLA.Rcomb, aes(x=Tr.Type, y=Total.prop.rec, fill=Tr.Type)) + 
+  geom_boxplot(show.legend = FALSE) +
+  labs(x= "", y="Proportion Recruits") + 
+  stat_summary(fun=mean, geom="point", shape=15, size=2, color="black", fill="black") +theme_bw() +
+  theme(axis.title = element_text(size = 20), axis.title.x = element_blank()) +
+  theme(axis.text.x = element_blank(), 
+        axis.text.y = element_text(size=15)) + ylim(NA, 0.7)
+
+pcombTFR.type <- ggarrange(P3, N3,
+                           labels = c("A", "B"),
+                           ncol=1, nrow=2, 
+                           legend = "none")
+pcombTFR.type
+
+###Plot VLA response 1&2 by treatment type####
+N4 <- ggplot(VLA.Rcomb, aes(x=Tr.Type, y=Total.Recs, fill=Tr.Type)) + 
+  geom_boxplot(show.legend = FALSE) +
+  labs(x="Varzea", y="") + 
+  stat_summary(fun=mean, geom="point", shape=15, size=2, color="black", fill="black") + theme_bw() +
+  theme(axis.title = element_text(size = 20)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 10), 
+        axis.text.y = element_text(size = 15)) + ylim(NA, 16)
+
+###Plot VLA proportion response 1&2 by treatment type####
+P4 <- ggplot(VLA.Rcomb, aes(x=Tr.Type, y=Total.prop.rec, fill=Tr.Type)) + 
+  geom_boxplot(show.legend = FALSE) +
+  labs(x= "", y="") + 
+  stat_summary(fun=mean, geom="point", shape=15, size=2, color="black", fill="black") + theme_bw() +
+  theme(axis.title = element_text(size = 20), axis.title.x = element_blank()) +
+  theme(axis.text.x = element_blank(), 
+        axis.text.y = element_text(size=15)) + ylim(NA, 0.7)
+
+pcombVR.type <- ggarrange(prop.plotV.type, num.plotV.type,
+                          labels = c("C", "D"),
+                          ncol=1, nrow=2, 
+                          legend = "none")
+pcombVR.type
+
+pcombRtypecomb <- ggarrange(P3, P4, N3, N4,
+                        labels = c("A","B","C", "D"),
+                        ncol=2, nrow=2, 
+                        common.legend = TRUE, legend = "right")
+pcombRtypecomb
+
+
+
 ###Response 1 & 2 Combine####
 head(TFLA.Rcomb)
 TFLA.Rcomb <- read.csv("TFLA.Rcomb.csv")
@@ -71,12 +127,12 @@ head(Safety23)
 unique(Safety23$Forest.type)
 write.csv(Safety23, "Safety23.csv", row.names = FALSE)
 Safety23 <- read.csv("Safety23.csv", header = TRUE, stringsAsFactors = TRUE)
+glimpse(Safety23)
 
 #reorder the groups order : I change the order of the factor data$names to order plot
 Safety23$Tr.Type <- factor(Safety23$Tr.Type , levels=c("CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
 
-###Plot combined response 1&2 by treatment####
-library(viridis)
+####Plot all number combined response 1&2 by treatment####
 num.plot.all <- ggplot(Safety23, aes(x=Treatment, y=Total.Recs, fill=Treatment)) + 
   geom_boxplot(show.legend = FALSE) +
   labs(x="Treatment", y="Number of Recruits") + 
@@ -84,7 +140,7 @@ num.plot.all <- ggplot(Safety23, aes(x=Treatment, y=Total.Recs, fill=Treatment))
   theme_bw() +
   theme(axis.title = element_text(size = 15))
 
-###Plot VLA proportion response 1&2 by treatment type####
+####Plot all proportion response 1&2 by treatment type####
 prop.plot.all <- ggplot(Safety23, aes(x=Treatment, y=Total.prop.rec, fill=Treatment)) + 
   geom_boxplot(show.legend = FALSE) +
   labs(y="Proportion of Recruits") + 
@@ -101,7 +157,7 @@ p.ALL
 annotate_figure(p.ALL, top = text_grob("Response 1 & 2 in Both Forest Types", 
                                               color = "black", face = "bold", size = 20))
 
-###Plot combined response 1&2 by treatment type####
+####Plot all number combined response 1&2 by treatment type####
 num.plot.all.type <- ggplot(Safety23, aes(x=Tr.Type, y=Total.Recs, fill=Tr.Type)) + 
   geom_boxplot(show.legend = FALSE) +
   labs(x="Treatment", y="Number of Recruits") + 
@@ -109,7 +165,7 @@ num.plot.all.type <- ggplot(Safety23, aes(x=Tr.Type, y=Total.Recs, fill=Tr.Type)
   theme_bw() +
   theme(axis.title = element_text(size = 15)) 
 
-###Plot VLA proportion response 1&2 by treatment type####
+####Plot all proportion combined response 1&2 by treatment type####
 prop.plot.all.type <- ggplot(Safety23, aes(x=Tr.Type, y=Total.prop.rec, fill=Tr.Type)) + 
   geom_boxplot(show.legend = FALSE) +
   labs(y="Proportion of Recruits") + 
@@ -145,7 +201,7 @@ net.dist23 <- read.csv("net.dist23.csv")
 net.dist23$Tr.Type <- factor(net.dist23$Tr.Type , levels=c("CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
 
 
-###plot net dist each treatment combined forest type####
+####plot net dist each treatment combined forest type####
 ##Combined forest types
 P.net.dist.all <- ggplot(net.dist23, aes(Treatment, Net.Dist)) + geom_boxplot(aes(fill=Treatment), show.legend = FALSE) + theme_bw() + theme(axis.title = element_text(size = 15)) +
   labs(y="Net Dist Moved (m)") + stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
@@ -162,7 +218,7 @@ V.net.dist.all <- ggplot(net.dist23, aes(Treatment, Net.Dist)) + geom_violin(aes
 annotate_figure(V.net.dist.all, top = text_grob("Net Distance Change in Both Forest Types", 
                                                 color = "black", face = "bold", size = 20))
 
-###plot net dist each treatment type####
+####plot net dist each treatment type####
 ##Combined forest types
 P.net.dist.all.type <- ggplot(net.dist23, aes(Tr.Type, Net.Dist)) + geom_boxplot(aes(fill=Tr.Type), show.legend = FALSE) + theme_bw() + theme(axis.title = element_text(size = 15)) +
   labs(x="Treatment", y="Net Dist Moved (m)") + stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
@@ -182,7 +238,7 @@ annotate_figure(V.net.dist.all, top = text_grob("",
 
 
 ###Model GLMM: number of recruits####
-##Hypotheses, Predictions####
+####Hypotheses, Predictions####
 #H1: MSF spp provide better safety information to the bird community relative to other forest birds
   #P1: There will be a higher response to MSF vocalizations than to non-flock vocalizations
 #H2: Bird species vocalizations function as safety cues for forest birds regardless of sociality status
@@ -190,17 +246,18 @@ annotate_figure(V.net.dist.all, top = text_grob("",
 #H3: Habitat type will influence the importance of safety cues to the larger bird community
   #P3: There will be a higher response to MSF safety cues in tierra firme compared to varzea
 
-###read in safety23 here####
+####read in safety23 here####
 Safety23 <- read.csv("Safety23.csv")
 head(Safety23) 
 unique(Safety23$Treatment)
 #Fixed vars: forest type, treatment/treatment type
 #Random vars: exemplar, point
 
-###Model number of recruits with all treatments####
+####Model number of recruits with all treatments####
 #Run glmm for total recruits
-#glmer(response~fixed.exp.var+fixedexp.var+(1|random.exp.var)), family = "", data = dataframe
-control_params <- glmerControl(optimizer="bobyqa", optCtrl = list(maxfun=1000, nAGQ = 10, calc.derivs=TRUE))
+#glmer(response~fixed.exp.var+fixedexp.var+(1|random.exp.var) + (1|random.exp.var)), family = "", data = dataframe
+##Can set optimizer more specifically with lower formula
+  #control_params <- glmerControl(optimizer="bobyqa", optCtrl = list(maxfun=1000, nAGQ = 10, calc.derivs=TRUE))
 M1<-glmer(Total.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23,
           control = glmerControl(optimizer = "bobyqa"))
 M2<-glmer(Total.Recs~Treatment+Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
@@ -208,14 +265,17 @@ M3<-glmer(Total.Recs~Treatment + (1|Point) + (1|Exemplar), family="poisson", dat
 M4<-glmer(Total.Recs~Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
 MN1<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=Safety23)
 summary(M3)
+
+#Determine best model to explain data with model.sel(M1, M2, etc...)
 selection<-model.sel(M1, M2, M3, M4, MN1)
-selection
+selection #M3 is best model but only 0.66 difference from null model
 anova(M1)
 plot(M1)
 
 ##Should we remove solo treatments and just compare MSF, NF, CTRL?
+#Do we need to run optimizer on all models or just the ones that require it?
 
-###Model number of recruits with group treatments####
+####Model number of recruits with group treatments####
 #Want to model group effects, so just solo treatments
 group.trmts <- Safety23 %>% filter(!Treatment=="MSFSOLO" & !Treatment=="NFSOLO")
 
@@ -226,15 +286,15 @@ M6<-glmer(Total.Recs~Treatment+Forest.type + (1|Point) + (1|Exemplar), family="p
 M7<-glmer(Total.Recs~Treatment + (1|Point) + (1|Exemplar), family="poisson", data=group.trmts)
 M8<-glmer(Total.Recs~Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=group.trmts)
 MN2<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=group.trmts)
-summary(M3)
+summary(M5)
 selection<-model.sel(M5, M6, M7, M8, MN2)
-selection
+selection #M7 is best model but 0.99 difference from null model
 
-###Model solo treatments with control####
+####Model number of recruits solo treatments with control####
 #Want to also model individual effects, so just solo treatments
 solo.trmts <- Safety23 %>% filter(!Tr.Type=="MSF" & !Tr.Type=="NF")
 
-####Run glmm for total recruits for only solo treatments####
+####Run glmm for total recruits for only solo treatments##
 #glmer(response~fixed.exp.var+fixedexp.var+(1|random.exp.var)), family = "", data = dataframe
 M9<-glmer(Total.Recs~Tr.Type+Forest.type + Tr.Type*Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=solo.trmts)
 M10<-glmer(Total.Recs~Tr.Type+Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=solo.trmts)
@@ -242,6 +302,7 @@ M11<-glmer(Total.Recs~Tr.Type+(1|Point) + (1|Exemplar),family="poisson",data=sol
 MN3<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=solo.trmts)
 
 #####Running into convergence problems, need to add optimizer####
+
 #using allfit() with glmer()
 #install.packages("optimx")
 #library(optimx)
@@ -270,7 +331,7 @@ if(sum(working_indices) == 0){
 }
 first_fit
 
-####Run glmm for total recruits for solo trtmts with optimizer####
+#####Run glmm for total recruits for solo trtmts with optimizer####
 #glmer(y ~ arm + (1 + arm | clustid),
     # data = dat, control = lmerControl(optimizer = "bobyqa"))
 M9<-glmer(Total.Recs~Tr.Type+Forest.type + Tr.Type*Forest.type + (1|Point) + (1|Exemplar), 
@@ -283,7 +344,7 @@ MN3<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=solo.trmt
 
 summary(M9)
 selection<-model.sel(M9, M10, M11, MN3)
-selection
+selection #Null model best here by 5.39 followed by M11
 
 ####Check for overdispersion in glmm####
 overdisp_fun <- function(model) {
@@ -307,7 +368,19 @@ library(TMB)
 #ratio-- chisq/resid degrees of freedom, want to be close to 1
 #rdf--resid degrees freedom
 #p-val--H0: no overdispersion, HA: overdispersion
-overdisp_fun(B1) 
+overdisp_fun(M11) 
+#Overdispersed: M1,2,3,5,6,7,8
+#Should we add optimizers to all to help with overdispersion?
+
+####use DHARMa package to cheeck residuals after running model#####
+#install.packages("DHARMa")
+library(DHARMa)
+
+#Create DHARMa residuals using simulateResiduals(model)
+residuals <- simulateResiduals(M2)
+
+plot(residuals)
+
 
 ####Predict values and plot for number of recruits####
 ##Run model
@@ -334,7 +407,7 @@ ggplot(predicted_data, aes(Treatment, Predicted)) + #adds treatment to x and pre
   facet_wrap(~Forest.type, scales = "free_y") + #adds two panes to show forest types separately
   geom_jitter(aes(solo.trmts$Tr.Type, solo.trmts$Total.Recs, colour=solo.trmts$Tr.Type), 
               width = 0.2) + #adds points for observed values and shrinks width of points
-  labs(x="Treatment", y="Values", color="Treatment") #labels for x, y, legend
+  labs(x="Treatment", y="Recruits", color="Treatment") #labels for x, y, legend
 
 #####Create boxplot of predicted values and layer boxplot of observed values####
 pred.plot <- ggplot(predicted_data, aes(Treatment, Predicted)) +
@@ -350,7 +423,7 @@ pred.plot + geom_boxplot(data = predicted_data,
 
 #####Another way to plot this using points and lines####
 ggplot(predicted_data, aes(x = Treatment)) +
-  geom_line(aes(y = Predicted), color = "black", linetype = "solid", size = 2) +
+  geom_line(aes(y = Predicted), color = "black", linetype = "solid", linewidth = 2) +
   geom_point(aes(y = Observed), color = "magenta", size = 1) +
   labs(title = "Predicted vs. Actual Values",
        x = "Treatment",
@@ -368,14 +441,18 @@ ggpred <- as.data.frame(ggpred)
 ggplot(ggpred, aes(x, predicted)) +
   geom_point(aes(color=group))
 
+
 ###Beta regression for proportion of recruits#### 
 #beta regression (with mixed effects)
 #Need package to run mixed effects beta reg
 #library("glmmTMB") 
 #Use same dataframes created in previous section, solo.trmts, group.trmts, and all safety23
 head(solo.trmts)
+
 ####First test assumptions####
 #Can use DHARMa package to cheeck residuals after running model
+#library(DHARMa)
+
 #1: response follows beta distribution, not really a way to do for the categorical predictors
 # Create a density plot for each category --doesn't show distribution but to explore
 #distribution of response variable within different categories
@@ -385,9 +462,9 @@ ggplot(solo.trmts, aes(x = Total.prop.rec, fill = Tr.Type)) +
 
 hist(Safety23$Total.prop.rec)
 
-
 #2: check heteroskedasticity -- unequal variability of the response var across diff
 #levels of predictors
+
 #3: assess for multicollinearity among predictor vars, high correlations no good
 
 ####Model specifications####
@@ -412,20 +489,52 @@ any(is.na(Safety23$Total.prop.rec))
 ##Issue of having 0s and 1s in response variable, need to transform
 #Will try to add 0.000000000001 to zeros, and there are no 1s
 #Make new column to retain original props
+unique(Safety23$Total.prop.rec)
 Safety23$Tr.prop <- Safety23$Total.prop.rec
 #Add small amount to zeros
 Safety23$Tr.prop[which(Safety23$Total.prop.rec==0)] <- 1e-14
+#Want to model group effects, so just solo treatments
+group.trmts <- Safety23 %>% filter(!Treatment=="MSFSOLO" & !Treatment=="NFSOLO")
+#Want to also model individual effects, so just solo treatments
+solo.trmts <- Safety23 %>% filter(!Tr.Type=="MSF" & !Tr.Type=="NF")
 
 
 ##Run models
-B1<-glmmTMB(Tr.prop~Tr.Type+Forest.type+(1|Exemplar) + (1|Point),
-            family=beta_family(link = "logit"), data=solo.trmts)
-B2<-glmmTMB(Total.prop.rec~Treatment+(1|Exemplar) + (1|Point),
-            family=beta_family(link = "logit"), data=Safety23)
 
-BN1<-glmmTMB(Total.prop.rec~1, family=beta_family(link = "logit"), data=Safety23)
-selection<-model.sel(M1, M2, M.null)
-summary(B1)
+####Run betareg for prop of all treatments####
+B1 <- glmmTMB(Tr.prop~Treatment+Forest.type+(1|Exemplar) + (1|Point),
+              family=beta_family(link = "logit"), data=Safety23)
+B2 <- glmmTMB(Tr.prop~Treatment+(1|Exemplar) + (1|Point),
+              family=beta_family(link = "logit"), data=Safety23)
+B3 <- glmmTMB(Tr.prop~Forest.type+(1|Exemplar) + (1|Point),
+              family=beta_family(link = "logit"), data=Safety23)
+BN1<-glmmTMB(Tr.prop~1, family=beta_family(link = "logit"), data=Safety23)
+selection<-model.sel(B1, B2, B3, BN1)
+selection
+
+####Run betareg for prop group treatments only####
+B4 <- glmmTMB(Tr.prop~Treatment+Forest.type+(1|Exemplar) + (1|Point),
+              family=beta_family(link = "logit"), data=group.trmts)
+B5 <- glmmTMB(Tr.prop~Treatment+(1|Exemplar) + (1|Point),
+              family=beta_family(link = "logit"), data=group.trmts)
+B6 <- glmmTMB(Tr.prop~Forest.type+(1|Exemplar) + (1|Point),
+              family=beta_family(link = "logit"), data=group.trmts)
+BN2<-glmmTMB(Tr.prop~1, family=beta_family(link = "logit"), data=group.trmts)
+selection<-model.sel(B4, B5, B6, BN2)
+selection
+
+####Run betareg for prop solo treatments only####
+B7 <- glmmTMB(Tr.prop~Tr.Type+Forest.type+(1|Exemplar) + (1|Point),
+            family=beta_family(link = "logit"), data=solo.trmts)
+B8 <- glmmTMB(Tr.prop~Tr.Type+(1|Exemplar) + (1|Point),
+            family=beta_family(link = "logit"), data=solo.trmts)
+B9 <- glmmTMB(Tr.prop~Tr.Type+(1|Exemplar) + (1|Point),
+            family=beta_family(link = "logit"), data=solo.trmts)
+BN3 <- glmmTMB(Tr.prop~1, family=beta_family(link = "logit"), data=solo.trmts)
+selection<-model.sel(B7, B8, B9, BN3)
+selection
+summary(B9)
+
 
 ####beta reg Model assessment####
 #assess model fit by examining resids and goodness of fit measures
@@ -439,19 +548,39 @@ summary(B1)
 #examine diagnostic plots sa resid plots, to check model assumptions
 #identify any patterns or issues in the data that may require further investigation
 
-###Modeling net distance####
+####Predict model values and plot####
+#pred <- predict(model, type="")
+predicted_vals <- predict(B1, type="response")
+
+##Create data frame for plotting by combining observed and predicted values
+#because above predict function provides values in the same order as original dataframe
+#can just add predictions by either adding predictions to original df or by creating
+#new df with just the variables I want for plotting
+predicted_data <- data.frame(Trial= Safety23$Trial, Observed=Safety23$Tr.prop, Predicted=predicted_vals, 
+                             Treatment=Safety23$Treatment, Forest.type=Safety23$Forest.type)
+
+#####Create boxplot with predicted values and points of observed values####
+ggplot(predicted_data, aes(Treatment, Predicted)) + #adds treatment to x and predicted values for y
+  geom_boxplot() + #creates boxplot for predicted values
+  theme_minimal() +
+  facet_wrap(~Forest.type, scales = "free_y") + #adds two panes to show forest types separately
+  geom_jitter(aes(Safety23$Treatment, Safety23$Tr.prop, colour=Safety23$Treatment), 
+              width = 0.2) + #adds points for observed values and shrinks width of points
+  labs(x="Treatment", y="Recruits", color="Treatment") #labels for x, y, legend
+
+
+
+
+###LMEM: net distance####
 ##lmem or lm
 net.dist23 <- read.csv("net.dist23.csv", stringsAsFactors = TRUE)
 head(net.dist23)
 
 ##split net.dist into group trmts and solo.trmts
-solo.trmts <- net.dist23 %>% filter(!Tr.Type=="MSF" & !Tr.Type=="NF")
-group.trmts <- net.dist23 %>% filter(!Treatment=="MSFSOLO" & !Treatment=="NFSOLO")
+net.solo.trmts <- net.dist23 %>% filter(!Tr.Type=="MSF" & !Tr.Type=="NF")
+net.group.trmts <- net.dist23 %>% filter(!Treatment=="MSFSOLO" & !Treatment=="NFSOLO")
 
 ####Plot net.dist####
-library(ggplot2)
-library(ggpubr)
-library(tidyverse)
 #####plot nest dist by treatment group####
 ggplot(net.dist23, aes(Treatment, Net.Dist)) + geom_boxplot(aes(fill=Treatment), show.legend = FALSE) +labs(x="Treatment", y="Net Dist Moved (m)") + theme_bw() +
   theme(axis.title = element_text(size = 15))+ stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
@@ -462,14 +591,18 @@ ggplot(net.dist23, aes(Tr.Type, Net.Dist)) + geom_boxplot(aes(fill=Tr.Type), sho
   labs(x="Treatment", y="Net Dist Moved (m)") + stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
 
 #m.dist1 <- lmer(Net.Dist~Treatment+Forest.type+Forest.Type*Treatment+(1|Exemplar),data = net.dist23)
-L1 <- lmer(Net.Dist~Treatment+Forest.type+Forest.type*Treatment+(1|Point), data = net.dist23)
-#error of boundary (singular) fit, check for multicollinearity, however issue is likely with random effects
+L1 <- lmer(Net.Dist~Treatment+Forest.type+Forest.type*Treatment+(1|Point)+(1|Exemplar), data = net.dist23)
+#error of boundary (singular) fit, check for multicollinearity, however issue is likely with random effects ***Problem goes away if you remove exemplar random effect??
 chi_squared <- chisq.test(net.dist23$Treatment, net.dist23$Forest.type)
 print(chi_squared) #p=0.84, this suggests no strong relationship between the two effects
 #unlikely multicollinearity is an issue
-summary(L1)
+#Check for collinearity using vif(model)
+library(car)
+vif(L1)
+#interaction term high meaning possible collinearity between treatment and forest type vars and their interaction
+#Remove interaction term??
 
-L2 <- lmer(Net.Dist~Treatment+Forest.type+Forest.type*Treatment,data = net.dist23) #check assumptions, log transform?
+L2 <- lmer(Net.Dist~Treatment+Forest.type+(1|Point)+(1|Exemplar),data = net.dist23) #check assumptions, log transform?
 m.distnull <- lmer(Net.Dist~1+(1|Exemplar), data = net.dist23)
 help("isSingular") #not sure about that
 summary(m.distnull)
@@ -513,6 +646,12 @@ sapply(net.dist23, class)
 leveneTest(resids, net.dist23$Forest.type)  #p=0.23
 leveneTest(resids, net.dist23$Treatment) #p=0.28
 #Variance is equal for both fixed variables
+
+###use DHARMa package to cheeck residuals after running model#####
+#Create DHARMa residuals using simulateResiduals(model)
+residuals <- simulateResiduals(L2)
+
+plot(residuals)
 
 ####Transform data####
 #Make new transformed variable and add to dataframe #***This produces NaNs and 
@@ -567,6 +706,16 @@ leveneTest(resids2, net.dist23$Treatment) #p-value=0.054
 summary(m.dist2)
 
 ###Do I need to do a different model or different transformation??
+
+
+
+
+
+
+
+
+
+
 
 
 ###Plot model predictions####

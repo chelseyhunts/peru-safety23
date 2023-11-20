@@ -636,14 +636,16 @@ num.plotTF.type <- ggplot(TFLA.Rcomb, aes(x=Tr.Type, y=Total.Recs, fill=Tr.Type)
   geom_boxplot(show.legend = FALSE) +
   labs(x="Treatment", y="Number of Recruits") + 
   stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black") + theme_bw() +
-  theme(axis.title = element_text(size = 15)) 
+  theme(axis.title = element_text(size = 20)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 15), axis.text.y = element_text(size = 15))
 
 ###Plot TFLA proportion response 1&2 by treatment type####
 prop.plotTF.type <- ggplot(TFLA.Rcomb, aes(x=Tr.Type, y=Total.prop.rec, fill=Tr.Type)) + 
   geom_boxplot(show.legend = FALSE) +
   labs(y="Proportion of Recruits") + 
   stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black") +theme_bw() +
-  theme(axis.title = element_text(size = 15), axis.title.x = element_blank()) 
+  theme(axis.title = element_text(size = 20), axis.title.x = element_blank()) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 15), axis.text.y = element_text(size=15))
 
 pcombTFR.type <- ggarrange(prop.plotTF.type, num.plotTF.type,
                           labels = c("A", "B"),
