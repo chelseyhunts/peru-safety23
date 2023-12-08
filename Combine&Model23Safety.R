@@ -28,6 +28,8 @@ library(dfoptim)
 ###Combine plots for side by side of no and prop recruits for both forest types
 #First need to remove axis titles
 
+
+
 P1 <- prop.plotTFLAcomb + theme(axis.title.x = element_blank())
 P2 <- ggplot(subset(VLA.Rcomb,Treatment%in% c("MSF","CTRL","NF")),
              aes(x=Treatment, y=Total.prop.rec, fill=Treatment)) + 
@@ -116,6 +118,97 @@ pcombRtypecomb <- ggarrange(P3, P4, N3, N4,
 pcombRtypecomb
 
 
+VLA.Rcomb <- read.csv("VLA.Rcomb.csv", stringsAsFactors = TRUE)
+
+###Plot with mean and standard errors instead of boxplots TFLA####
+# Use dplyr to group by 'Group' and calculate mean and standard error
+head(TFLA.Rcomb)
+summary_statsTFLA <- TFLA.Rcomb %>%
+  group_by(Treatment, Tr.Type) %>%
+  summarize(
+    Mean = mean(Total.Recs),
+    SD = sd(Total.Recs),
+    SE = sd(Total.Recs) / sqrt(n())
+  )
+
+head(TFLA.Rcomb)
+summary_stats.prTFLA <- TFLA.Rcomb %>%
+  group_by(Treatment, Tr.Type) %>%
+  summarize(
+    Mean = mean(Total.prop.rec),
+    SD = sd(Total.prop.rec),
+    SE = sd(Total.prop.rec) / sqrt(n())
+  )
+
+#reorder the groups order : I change the order of the factor data$names to order plot
+summary_statsTFLA <- summary_statsTFLA %>%
+  mutate(Tr.Type = fct_relevel(Tr.Type, "CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
+
+summary_stats.prTFLA <- summary_stats.prTFLA %>%
+  mutate(Tr.Type = fct_relevel(Tr.Type, "CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
+
+MeanNoTFLA <- ggplot(summary_statsTFLA, aes(Tr.Type, Mean, colour=Treatment))+
+  geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=.1) +
+  geom_point() + theme_bw() + labs(x="Tierra Firme", y="Mean No. Recruits")+
+  theme(axis.title = element_text(size = 15)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 10), 
+        axis.text.y = element_text(size = 15)) + ylim(NA, 8)
+
+MeanPrTFLA <- ggplot(summary_stats.prTFLA, aes(Tr.Type, Mean, colour=Treatment))+
+  geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=.1) +
+  geom_point() + theme_bw() + labs(x="", y="Mean Proportion Recruits")+
+  theme(axis.title = element_text(size = 15), axis.title.x = element_blank()) +
+  theme(axis.text.x = element_blank(), 
+        axis.text.y = element_text(size=15)) + ylim(NA, 0.4)
+
+
+###Plot with mean and standard errors instead of boxplots VLA####
+# Use dplyr to group by 'Group' and calculate mean and standard error
+head(VLA.Rcomb)
+summary_statsVLA <- VLA.Rcomb %>%
+  group_by(Treatment, Tr.Type) %>%
+  summarize(
+    Mean = mean(Total.Recs),
+    SD = sd(Total.Recs),
+    SE = sd(Total.Recs) / sqrt(n())
+  )
+
+head(VLA.Rcomb)
+summary_stats.prVLA <- VLA.Rcomb %>%
+  group_by(Treatment, Tr.Type) %>%
+  summarize(
+    Mean = mean(Total.prop.rec),
+    SD = sd(Total.prop.rec),
+    SE = sd(Total.prop.rec) / sqrt(n())
+  )
+
+#reorder the groups order : I change the order of the factor data$names to order plot
+summary_statsVLA$Tr.Type <- factor(summary_statsVLA$Tr.Type , levels=c("CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
+
+summary_stats.prVLA <- summary_stats.prVLA %>%
+  mutate(Tr.Type = fct_relevel(Tr.Type, "CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
+
+MeanNoVLA <- ggplot(summary_statsVLA, aes(Tr.Type, Mean, colour=Treatment))+
+  geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=.1) +
+  geom_point() + theme_bw() + labs(x="Varzea", y="")+
+  theme(axis.title = element_text(size = 15)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 10), 
+        axis.text.y = element_text(size = 15)) + ylim(NA, 8)
+
+MeanPrVLA <- ggplot(summary_stats.prVLA, aes(Tr.Type, Mean, colour=Treatment))+
+  geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=.1) +
+  geom_point() + theme_bw() + labs(x="", y="")+
+  theme(axis.title = element_text(size = 15), axis.title.x = element_blank()) +
+  theme(axis.text.x = element_blank(), 
+        axis.text.y = element_text(size=15)) + ylim(NA, 0.4)
+
+####Plot all means together comparing TF and VA mean numbers and proportions###
+P.Means.All <- ggarrange(MeanPrTFLA, MeanPrVLA,MeanNoTFLA, MeanNoVLA, 
+                            labels = c("A","B","C", "D"),
+                            ncol=2, nrow=2, 
+                            common.legend = TRUE, legend = "right")
+P.Means.All
+
 
 ###Response 1 & 2 Combine####
 head(TFLA.Rcomb)
@@ -124,7 +217,7 @@ head(VLA.Rcomb)
 VLA.Rcomb <- read.csv("VLA.Rcomb.csv")
 Safety23 <- rbind(TFLA.Rcomb, VLA.Rcomb)
 head(Safety23)
-unique(Safety23$Forest.type)
+unique(Safety23$Treatment)
 write.csv(Safety23, "Safety23.csv", row.names = FALSE)
 Safety23 <- read.csv("Safety23.csv", header = TRUE, stringsAsFactors = TRUE)
 glimpse(Safety23)
@@ -181,6 +274,25 @@ p.ALL.type
 ###Add title to figure
 annotate_figure(p.ALL.type, top = text_grob("Response 1 & 2 in Both Forest Types", 
                                        color = "black", face = "bold", size = 20))
+
+
+####Plot combined data with mean and standard errors instead of boxplots####
+# Use dplyr to group by 'Group' and calculate mean and standard error
+head(Safety23)
+summary_stats <- Safety23 %>%
+  group_by(Treatment, Tr.Type) %>%
+  summarize(
+    Mean = mean(Total.Recs),
+    SD = sd(Total.Recs),
+    SE = sd(Total.Recs) / sqrt(n())
+  )
+
+#reorder the groups order : I change the order of the factor data$names to order plot
+summary_stats$Tr.Type <- factor(summary_stats$Tr.Type , levels=c("CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
+
+ggplot(summary_stats, aes(Tr.Type, Mean, colour=Treatment))+
+  geom_errorbar(aes(ymin=Mean-SE, ymax=Mean+SE), width=.1) +
+  geom_point() + theme_bw() + labs(x="Treatment", y="Mean No. Recruits")
 
 
 ###Net dist combine####
@@ -247,9 +359,9 @@ annotate_figure(V.net.dist.all, top = text_grob("",
   #P3: There will be a higher response to MSF safety cues in tierra firme compared to varzea
 
 ####read in safety23 here####
-Safety23 <- read.csv("Safety23.csv")
+Safety23 <- read.csv("Safety23.csv", stringsAsFactors = TRUE)
 head(Safety23) 
-unique(Safety23$Treatment)
+unique(Safety23$Tr.Type)
 #Fixed vars: forest type, treatment/treatment type
 #Random vars: exemplar, point
 
@@ -259,18 +371,69 @@ unique(Safety23$Treatment)
 ##Can set optimizer more specifically with lower formula
   #control_params <- glmerControl(optimizer="bobyqa", optCtrl = list(maxfun=1000, nAGQ = 10, calc.derivs=TRUE))
 M1<-glmer(Total.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23,
-          control = glmerControl(optimizer = "bobyqa"))
+control = glmerControl(optimizer = "bobyqa"))
 M2<-glmer(Total.Recs~Treatment+Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
 M3<-glmer(Total.Recs~Treatment + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
 M4<-glmer(Total.Recs~Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=Safety23)
 MN1<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=Safety23)
-summary(M3)
+summary(M1)
+
+####Log transform recruits to run LMEM####
+#why??##
+Safety23$log.Recs <- log10(Safety23$Total.Recs+1)
+
+
+##Density plot of distribution
+ggplot(Safety23, aes(x = log.Recs, fill = Treatment)) +
+  geom_density(alpha = 0.6) +
+  labs(title = "Density Plot of Response by Category")
+
+
+#Model LMEMs
+M1<-lmer(log.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) + (1|Exemplar), data=Safety23)
+M2<-lmer(log.Recs~Treatment+Forest.type + (1|Point) + (1|Exemplar), data=Safety23)
+M3<-lmer(log.Recs~Treatment + (1|Point) + (1|Exemplar), data=Safety23)
+M4<-lmer(log.Recs~Forest.type + (1|Point) + (1|Exemplar), data=Safety23)
+MN1<-lmer(log.Recs~1+(1|Point) + (1|Exemplar), data=Safety23)
+summary(M1)
 
 #Determine best model to explain data with model.sel(M1, M2, etc...)
 selection<-model.sel(M1, M2, M3, M4, MN1)
 selection #M3 is best model but only 0.66 difference from null model
-anova(M1)
+anova(M1, MN1)
 plot(M1)
+
+####Calculate LS Means, but for what?####
+install.packages("lsmeans")
+library(lsmeans)
+ls_means <- lsmeans(M11, "Tr.Type")
+ls_means
+plot(ls_means)
+
+####Run General Contrast to compare each treatment####
+#Dunnet's test / general contrast
+
+# Display summary of the model
+summary(M1)
+
+#Display levels of the factor
+levels(Safety23$Treatment)
+
+# Define contrasts
+contrasts(Safety23$Treatment) <- contr.treatment(5)  # Treatment contrasts (default in R)
+
+contrasts(Safety23$Treatment)
+
+custom_contrasts <- matrix(c(-1, 0, 1, 0, 0, -1, 0, 1, 0, 0, -1, 0, 1, 0, 0), ncol = 5, byrow = TRUE) #didn't work....
+
+# Apply custom contrasts to the factor
+contrasts(Safety23$Treatment) <- custom_contrasts
+
+# Fit a linear model with custom contrasts
+model_custom_contrasts <- lm(response ~ group)
+
+# Display summary of the model with custom contrasts
+summary(model_custom_contrasts)
 
 ##Should we remove solo treatments and just compare MSF, NF, CTRL?
 #Do we need to run optimizer on all models or just the ones that require it?
@@ -278,7 +441,7 @@ plot(M1)
 ####Model number of recruits with group treatments####
 #Want to model group effects, so just solo treatments
 group.trmts <- Safety23 %>% filter(!Treatment=="MSFSOLO" & !Treatment=="NFSOLO")
-
+head(Safety23)
 #glmer(response~fixed.exp.var+fixedexp.var+(1|random.exp.var)), family = "", data = dataframe
 M5<-glmer(Total.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) + (1|Exemplar), 
           family="poisson", data=group.trmts)
@@ -290,6 +453,18 @@ summary(M5)
 selection<-model.sel(M5, M6, M7, M8, MN2)
 selection #M7 is best model but 0.99 difference from null model
 
+###Update to LMEMs
+M5<-lmer(log.Recs~Treatment+Forest.type + Treatment*Forest.type + (1|Point) + (1|Exemplar), data=group.trmts)
+M5<-lm(log.Recs~Treatment+Forest.type + Treatment*Forest.type, data=group.trmts)
+M6<-lmer(log.Recs~Treatment+Forest.type + (1|Point) + (1|Exemplar), data=group.trmts)
+M7<-lmer(log.Recs~Treatment + (1|Point) + (1|Exemplar), data=group.trmts)
+M8<-lmer(log.Recs~Forest.type + (1|Point) + (1|Exemplar), data=group.trmts)
+MN2<-lmer(log.Recs~1+(1|Point) + (1|Exemplar), data=group.trmts)
+summary(M5)
+selection<-model.sel(M5, M6, M7, M8, MN2)
+selection #singularity issues 
+plot(resid(M5))
+
 ####Model number of recruits solo treatments with control####
 #Want to also model individual effects, so just solo treatments
 solo.trmts <- Safety23 %>% filter(!Tr.Type=="MSF" & !Tr.Type=="NF")
@@ -300,6 +475,18 @@ M9<-glmer(Total.Recs~Tr.Type+Forest.type + Tr.Type*Forest.type + (1|Point) + (1|
 M10<-glmer(Total.Recs~Tr.Type+Forest.type + (1|Point) + (1|Exemplar), family="poisson", data=solo.trmts)
 M11<-glmer(Total.Recs~Tr.Type+(1|Point) + (1|Exemplar),family="poisson",data=solo.trmts) #failed to converge
 MN3<-glmer(Total.Recs~1+(1|Point) + (1|Exemplar),family="poisson",data=solo.trmts)
+#####Running into convergence problems, need to add optimizer####
+
+
+####Run LMEMs for total recruits for only solo treatments##
+M9<-lmer(log.Recs~Tr.Type+Forest.type + Tr.Type*Forest.type + (1|Point) + (1|Exemplar), data=solo.trmts) #singular
+M10<-lmer(log.Recs~Tr.Type+Forest.type + (1|Point) + (1|Exemplar), data=solo.trmts) #singular
+M11<-lmer(log.Recs~Tr.Type+(1|Point) + (1|Exemplar), data=solo.trmts) 
+MN3<-lmer(log.Recs~1+(1|Point) + (1|Exemplar), data=solo.trmts)
+selection<-model.sel(M9, M10, M11, MN3)
+selection
+
+
 
 #####Running into convergence problems, need to add optimizer####
 
@@ -368,7 +555,7 @@ library(TMB)
 #ratio-- chisq/resid degrees of freedom, want to be close to 1
 #rdf--resid degrees freedom
 #p-val--H0: no overdispersion, HA: overdispersion
-overdisp_fun(M11) 
+overdisp_fun(M5) 
 #Overdispersed: M1,2,3,5,6,7,8
 #Should we add optimizers to all to help with overdispersion?
 
@@ -377,10 +564,14 @@ overdisp_fun(M11)
 library(DHARMa)
 
 #Create DHARMa residuals using simulateResiduals(model)
-residuals <- simulateResiduals(M2)
+residuals <- simulateResiduals(M9)
 
 plot(residuals)
 
+qqnorm(residuals(M9))
+qqline(residuals(M9))
+qqplot(M9)
+qqline(M2)
 
 ####Predict values and plot for number of recruits####
 ##Run model
@@ -434,6 +625,8 @@ ggplot(predicted_data, aes(x = Treatment)) +
 library(ggeffects)
 ggpred <- ggpredict(M9, terms = c("Tr.Type", "Forest.type"))
 plot(ggpred)
+##Look at standard errors
+#General contrast statement post-hoc test
 
 #Can turn ggpredict object into dataframe and use for creating a plot with 
 #observed and predicted? Needs work here...
@@ -500,38 +693,40 @@ solo.trmts <- Safety23 %>% filter(!Tr.Type=="MSF" & !Tr.Type=="NF")
 
 
 ##Run models
-
+head(Safety23)
 ####Run betareg for prop of all treatments####
-B1 <- glmmTMB(Tr.prop~Treatment+Forest.type+(1|Exemplar) + (1|Point),
+B1 <- glmmTMB(Tr.prop~Tr.Type+Forest.type+(1|Exemplar) + (1|Point),
               family=beta_family(link = "logit"), data=Safety23)
-B2 <- glmmTMB(Tr.prop~Treatment+(1|Exemplar) + (1|Point),
+B2 <- glmmTMB(Tr.prop~Tr.Type+(1|Exemplar) + (1|Point),
               family=beta_family(link = "logit"), data=Safety23)
 B3 <- glmmTMB(Tr.prop~Forest.type+(1|Exemplar) + (1|Point),
               family=beta_family(link = "logit"), data=Safety23)
 BN1<-glmmTMB(Tr.prop~1, family=beta_family(link = "logit"), data=Safety23)
 selection<-model.sel(B1, B2, B3, BN1)
 selection
-
+head(group.trmts)
 ####Run betareg for prop group treatments only####
-B4 <- glmmTMB(Tr.prop~Treatment+Forest.type+(1|Exemplar) + (1|Point),
+B4 <- glmmTMB(Tr.prop~Tr.Type+Forest.type+(1|Exemplar) + (1|Point),
               family=beta_family(link = "logit"), data=group.trmts)
-B5 <- glmmTMB(Tr.prop~Treatment+(1|Exemplar) + (1|Point),
+B5 <- glmmTMB(Tr.prop~Tr.Type+(1|Exemplar) + (1|Point),
               family=beta_family(link = "logit"), data=group.trmts)
 B6 <- glmmTMB(Tr.prop~Forest.type+(1|Exemplar) + (1|Point),
               family=beta_family(link = "logit"), data=group.trmts)
 BN2<-glmmTMB(Tr.prop~1, family=beta_family(link = "logit"), data=group.trmts)
 selection<-model.sel(B4, B5, B6, BN2)
 selection
+summary(B6)
 
 ####Run betareg for prop solo treatments only####
 B7 <- glmmTMB(Tr.prop~Tr.Type+Forest.type+(1|Exemplar) + (1|Point),
             family=beta_family(link = "logit"), data=solo.trmts)
 B8 <- glmmTMB(Tr.prop~Tr.Type+(1|Exemplar) + (1|Point),
             family=beta_family(link = "logit"), data=solo.trmts)
-B9 <- glmmTMB(Tr.prop~Tr.Type+(1|Exemplar) + (1|Point),
+B9 <- glmmTMB(Tr.prop~Forest.type+(1|Exemplar) + (1|Point),
             family=beta_family(link = "logit"), data=solo.trmts)
 BN3 <- glmmTMB(Tr.prop~1, family=beta_family(link = "logit"), data=solo.trmts)
 selection<-model.sel(B7, B8, B9, BN3)
+selection<-model.sel(B1,B2,B3,B4,B5,B6,B7, B8, B9, BN1,BN2,BN3)
 selection
 summary(B9)
 
@@ -604,7 +799,6 @@ vif(L1)
 
 L2 <- lmer(Net.Dist~Treatment+Forest.type+(1|Point)+(1|Exemplar),data = net.dist23) #check assumptions, log transform?
 m.distnull <- lmer(Net.Dist~1+(1|Exemplar), data = net.dist23)
-help("isSingular") #not sure about that
 summary(m.distnull)
 
 anova(m.dist1)
@@ -651,8 +845,10 @@ leveneTest(resids, net.dist23$Treatment) #p=0.28
 #Create DHARMa residuals using simulateResiduals(model)
 residuals <- simulateResiduals(L2)
 
-plot(residuals)
-
+residuals <- resid(M2
+                   )
+qqnorm(residuals)
+qqline(residuals)
 ####Transform data####
 #Make new transformed variable and add to dataframe #***This produces NaNs and 
 # -inf, how to deal with this??

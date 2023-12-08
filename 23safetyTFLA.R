@@ -25,6 +25,14 @@ names(TFLAmaster)[1] <- "Trial"
 #Remove duplicates
 TFLAmaster <- TFLAmaster %>% distinct(Trial, .keep_all = TRUE)
 
+#Found issue in data 
+which(safetyTFLA$Trial=="42" & safetyTFLA$Treatment=="NFSOLO") #Trial 42, 116, 133
+safetyTFLA$Treatment[safetyTFLA$Trial == "42"] <- "MSFSOLO"
+which(safetyTFLA$Trial=="116" & safetyTFLA$Treatment=="NFSOLO") #Trial 42, 116, 133
+safetyTFLA$Treatment[safetyTFLA$Trial == "116"] <- "MSFSOLO"
+which(safetyTFLA$Trial=="133" & safetyTFLA$Treatment=="NFSOLO") #Trial 42, 116, 133
+safetyTFLA$Treatment[safetyTFLA$Trial == "133"] <- "MSFSOLO"
+
 ###Add trial location column
 #First need to remove any spaces before or after trial number, as was adding extra
 #observations
@@ -103,7 +111,7 @@ pre.v.postTFLA30$Spp <- ifelse(pre.v.postTFLA30$Spp == "UK", pre.v.postTFLA30$ID
 pre.v.postTFLA30$Spp <- ifelse(pre.v.postTFLA30$Spp == "UKCAN", pre.v.postTFLA30$ID, pre.v.postTFLA30$Spp)
 pre.v.postTFLA30$Spp <- ifelse(pre.v.postTFLA30$Spp == "UKCOL", pre.v.postTFLA30$ID, pre.v.postTFLA30$Spp)
 pre.v.postTFLA30$Spp[pre.v.postTFLA30$Spp=="UK5.1"] <- "UK5"
-pre.v.postVLA30$Spp[pre.v.postTFLA30$Spp=="UK5.2"] <- "UK5"
+pre.v.postTFLA30$Spp[pre.v.postTFLA30$Spp=="UK5.2"] <- "UK5"
 unique(pre.v.postTFLA30$Spp)
 
 ###Reorder df
@@ -307,6 +315,9 @@ annotate_figure(pcombTF, top = text_grob("Response 1 in Tierra Firme",
 safetyTFLA <- read.csv("23safetycueTFLA.csv")
 safetyTFLA <- subset(safetyTFLA, select = c("Trial","Treatment", "Exemplar","Stage","Spp", "ID", "Distance"))
 head(safetyTFLA)
+
+unique(safetyTFLA$ID)
+
 
 ####Subset dataframe for variables of interest Resp2####
 #Want to say if pre distance is less than post distance...but think I need to aggregate

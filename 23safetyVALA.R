@@ -17,6 +17,19 @@ VAmaster <- read.csv("23.VA.MASTER.csv")
 head(safetyVLA)
 head(VAmaster)
 
+#Found issue in data 
+which(safetyVLA$Exemplar=="TUOC1" & safetyVLA$Treatment=="NFSOLO") #Trial 91
+safetyVLA$Treatment[safetyVLA$Exemplar == "TUOC1"] <- "MSFSOLO"
+which(safetyVLA$Exemplar=="HARU4" & safetyVLA$Treatment=="NFSOLO") #Trial 84
+safetyVLA$Treatment[safetyVLA$Trial == "84"] <- "MSFSOLO"
+which(safetyVLA$Exemplar=="MSF4" & safetyVLA$Treatment=="MSFSOLO") #Trial 84
+safetyVLA$Treatment[safetyVLA$Trial == "25"] <- "MSF"
+unique(safetyVLA$Exemplar)
+safetyVLA$Exemplar[safetyVLA$Exemplar == "VA5"] <- "CTRL5"
+safetyVLA$Exemplar[safetyVLA$Exemplar == "VA4"] <- "CTRL4"
+safetyVLA$Exemplar[safetyVLA$Exemplar == "VA2"] <- "CTRL2"
+
+
 ####Subset dataframe for variables of interest####
 safetyVLA <- subset(safetyVLA, select = c("Trial","Treatment", "Exemplar", "Stage","Spp", "ID", "Distance"))
 sapply(safetyVLA, class)
@@ -603,11 +616,6 @@ head(VLA.Rcomb)
 VLA.Rcomb$Total.spp.trial <- VLA.Rcomb$R2.spp.per.trial+VLA.Rcomb$R1.spp.per.trial
 VLA.Rcomb$Total.spp.rec.trial <- VLA.Rcomb$R2.spp.rec.per.trial+VLA.Rcomb$R1.spp.rec.per.trial
 VLA.Rcomb$Total.prop.rec <- VLA.Rcomb$Total.spp.rec.trial/VLA.Rcomb$Total.spp.trial
-
-###Update all treatments as there are some controls labeled VA
-VLA.Rcomb$Exemplar[VLA.Rcomb$Exemplar == "VA5"] <- "CTRL5"
-VLA.Rcomb$Exemplar[VLA.Rcomb$Exemplar == "VA4"] <- "CTRL4"
-VLA.Rcomb$Exemplar[VLA.Rcomb$Exemplar == "VA2"] <- "CTRL2"
 
 ###Order data frame
 VLA.Rcomb <- VLA.Rcomb %>% relocate(Tr.Type, .after = Treatment)
