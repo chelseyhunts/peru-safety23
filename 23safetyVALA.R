@@ -1,13 +1,32 @@
-##Analysis for safety cue thesis work in varzea forest 
+##################Code created by Chelsey October 21, 2023
+
+# Preparing data for analysis -- data from varzea forest type
+# Two response types possible: 1) absent pre-stimulus within 30m, present within 30m in post-stimulus; 2) present pre-stimulus >30m, present post-stimulus <30m 
+# Count up number of individuals and number of species recruited per trial
+# Determine net distance change from pre to post-stimulus
+
+# Clear the environment
+rm(list = ls())
+
+# Specify the required packages
+package_list <- c("tidyverse", "ggpubr")
+
+# Install and load the packages
+install.packages(package_list)
+library(tidyverse) #used for tidying data and plotting
+library(ggpubr) #used for combining plots
+
+#Run to install packages needed and load libraries
+for (package in package_list) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package)
+    library(package, character.only = TRUE)
+  }
+}
+
+# Setup Data --------------------------------------------------------------
 
 ###Set working directory
-
-###Read in libraries
-library(tidyverse)
-library(ggpubr)
-library(ggplot2)
-library(wesanderson)
-library(viridis)
 
 ###read in TFLA csv file and create object
 safetyVLA<-read.csv("23safetycueVLA.csv", header=TRUE)
@@ -16,6 +35,9 @@ VAmaster <- read.csv("23.VA.MASTER.csv")
 ###Quick look over
 head(safetyVLA)
 head(VAmaster)
+
+
+# Fix Issues in Data ------------------------------------------------------
 
 #Found issue in data 
 which(safetyVLA$Exemplar=="TUOC1" & safetyVLA$Treatment=="NFSOLO") #Trial 91
@@ -30,13 +52,13 @@ safetyVLA$Exemplar[safetyVLA$Exemplar == "VA4"] <- "CTRL4"
 safetyVLA$Exemplar[safetyVLA$Exemplar == "VA2"] <- "CTRL2"
 
 
-####Subset dataframe for variables of interest####
+####Subset dataframe for variables of interest
 safetyVLA <- subset(safetyVLA, select = c("Trial","Treatment", "Exemplar", "Stage","Spp", "ID", "Distance"))
 sapply(safetyVLA, class)
 safetyVLA$Trial <- as.numeric(safetyVLA$Trial)
 
 #Keep only Trial # and location in master 
-####Subset dataframe for variables of interest####
+####Subset dataframe for variables of interest
 VAmaster <- subset(VAmaster, select = c("Prueba","Point"))
 names(VAmaster)[1] <- "Trial"
 
@@ -58,9 +80,10 @@ unique(safetyVLA$ID)
 
 write.csv(safetyVLA, "23safetycueVLA.csv", row.names = FALSE)
 
-############Response 1################################################################
-#Absent in pre-trial within 30m, present within 30m in post-trial
-####Remove anything greater than 30m distance Response 1#### Do we need to do this still??
+
+# Response 1 No.Individuals -----------------------------------------------
+
+####Remove anything greater than 30m distance Response 1
 safetyVLA30 <- safetyVLA[!safetyVLA$Distance>30,]
 head(safetyVLA30)
 #Check if all distances above 30m were removed
@@ -68,7 +91,6 @@ length(safetyVLA30$Stage[which(safetyVLA30$Distance>30)])
 safetyVLA30[safetyVLA30$Distance>30,]
 unique(safetyVLA30$Trial) #140 trials included
 
-###################TFLA Response 1#####################################################
 ###Prepare for for loops 
 #Create spp list of all spp with ID observed throughout experiment to add to pre and post
 ID.list<-unique(safetyVLA30$ID)
@@ -131,9 +153,10 @@ pre.v.postVLA30$Spp[pre.v.postVLA30$Spp=="UKCOL1.2"] <- "UKCOL1"
 pre.v.postVLA30$Spp[pre.v.postVLA30$Spp=="UK1.1"] <- "UK1"
 pre.v.postVLA30$Spp[pre.v.postVLA30$Spp=="UK1.2"] <- "UK1"
 unique(pre.v.postVLA30$Spp)
-###Reorder df
+
 ###Order data frame
 pre.v.postVLA30 <- pre.v.postVLA30[, c(1,2,3,7,4,5,6)]
+
 ###order new data set to add 
 pre.v.postVLA30$Trial <- as.numeric(pre.v.postVLA30$Trial)
 pre.v.postVLA30 <- pre.v.postVLA30[order(pre.v.postVLA30$Trial),]
@@ -198,7 +221,9 @@ rec.trialVLA30 <- rec.trialVLA30[order(rec.trialVLA30$Trial),]
 write.csv(rec.trialVLA30, "rec.trialVLA30.csv", row.names = FALSE)
 rec.trialVLA30 <- read.csv("rec.trialVLA30.csv")
 
-####Set proportions Response 1 Time 1####
+
+# Response 1 No.Species ---------------------------------------------------
+
 ###Set up for loop to count number of species observed per trial using code above
 #Need to create for loop to include trial and treatment for each line. 
 #First create empty vector for total spp per trial and spp recruited per trial
@@ -242,7 +267,7 @@ head(Trial.trtmt)
 ###Now need to combine trial.trtmt, spp.rec.per.trial, spp.per.trial
 str(Spp.rec.per.trial)
 
-####Merge data to get prop df####
+####Merge data to get prop df
 Prop.trialVLA30 <- merge(Trial.trtmt, c(Spp.per.trial, Spp.rec.per.trial), by="Trial", all = TRUE)
 ###Combine recruits per trial and number of species per trial to get proportion 
 Prop.trialVLA30$Prop.rec <- Prop.trialVLA30$Spp.rec.per.trial/Prop.trialVLA30$Spp.per.trial
@@ -251,7 +276,7 @@ head(Prop.trialVLA30)
 ###Replace NaNs with 0s
 Prop.trialVLA30$Prop.rec[is.nan(Prop.trialVLA30$Prop.rec)]<-0 #There are no NAs
 
-####Merge prop rec and rec Response 1 Time 1####
+####Merge prop rec and rec Response 1 Time 1
 ###Now need to add number of recruits per trial to this
 #Using merge
 VLA.R1 <- merge(rec.trialVLA30, Prop.trialVLA30)
@@ -277,10 +302,13 @@ head(VLA.R1)
 ###Order data frame
 VLA.R1 <- VLA.R1 %>% select(1,2,3,4,9,5,6,7,8)
 
-####Write final Response 1 time 1 new csv/Read in####
+####Write final Response 1 new csv/Read in####
 write.csv(VLA.R1, "VLA.R1.csv", row.names = FALSE)
 VLA.R1 <- read.csv("VLA.R1.csv")
 head(VLA.R1)
+
+
+# Plot Response 1 ---------------------------------------------------------
 
 ###Plot using ggplot
 
@@ -295,7 +323,7 @@ num.plotVLA.R1 <- ggplot(VLA.R1, aes(Treatment, R1.recruit)) + geom_boxplot(aes(
   guides(fill=guide_legend(title="Treatment Group")) + 
   stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
 
-####Plot comb VLA.R1####
+####Plot comb VLA.R1
 p1V <- ggplot(VLA.R1, aes(x=Treatment, y=R1.prop.rec, fill=Treatment)) + 
   geom_boxplot(show.legend = FALSE) +
   labs(y="Proportion of Recruits") + theme_bw() +
@@ -321,18 +349,15 @@ annotate_figure(pcombV, top = text_grob("Response 1 in Varzea",
                                          color = "black", face = "bold", size = 20))
 
 
-###################################Response 2#####
-####Select those that moved in closer from pre to post Response 2######
-####Subset data frame for variables of interest####
+# Response 2 No.Individuals -----------------------------------------------
+
+####Select those that moved in closer from pre to post Response 2
+####Subset data frame for variables of interest
 
 safetyVLA <- read.csv("23safetycueVLA.csv")
 head(safetyVLA)
 
-####Subset dataframe for variables of interest Resp2####
-#Want to say if pre distance is less than post distance...but think I need to aggregate
-#so that spp are side by side here. might need to first put through master for loop 
-#if that is the case then I need to somehow keep distance for each spp in master loop 
-#Or do i....Can maybe just aggregate/merge from start...lets see
+####Subset dataframe for variables of interest Resp2
 
 safetyVLA.R2 <- safetyVLA
 head(safetyVLA.R2)
@@ -348,7 +373,8 @@ safetyVLA.R2$Spp[safetyVLA.R2$Spp=="UKCOL1.2"] <- "UKCOL1"
 safetyVLA.R2$Spp[safetyVLA.R2$Spp=="UK1.1"] <- "UK1"
 safetyVLA.R2$Spp[safetyVLA.R2$Spp=="UK1.2"] <- "UK1"
 unique(safetyVLA.R2$Spp)
-####Split dataframe into pre and post####
+
+####Split dataframe into pre and post
 safetyVLA.R2.Pre <- safetyVLA.R2[which(safetyVLA.R2$Stage=="PRE"),] #1166 obs 
 #filter(safetyTFLA, Stage=="PRE") Can also do this way
 head(safetyVLA.R2.Pre)
@@ -359,9 +385,6 @@ head(safetyVLA.R2.Post)
 # can combine 
 safetyVLA.R2.comb <- merge(safetyVLA.R2.Pre, safetyVLA.R2.Post, by=c("Trial", "Point", "Treatment", "Exemplar", "Spp", "ID"), all.x = TRUE)
 head(safetyVLA.R2.comb) #1159 obs, by adding in all.x, we don't lose trials with no recruits
-
-#Can double check with anti join but columns need to be the same, look later
-#anti_join()
 
 #Remove duplicate columns
 safetyVLA.R2.comb <- safetyVLA.R2.comb %>% select(!c(Stage.x, Stage.y))
@@ -381,7 +404,7 @@ safetyVLA.R2.comb$R2.recruit <- ifelse(safetyVLA.R2.comb$Pre.Dist > safetyVLA.R2
 head(safetyVLA.R2.comb)
 head(VLA.R1)
 
-####Remove conspecifics from Solo spp####
+####Remove conspecifics from Solo spp
 unique(safetyVLA.R2.comb$Treatment)
 head(safetyVLA.R2.comb) #335 obs
 
@@ -409,7 +432,7 @@ head(safetyVLA.R2.comb)
 safetyVLA.R2.comb <- safetyVLA.R2.comb %>% arrange(safetyVLA.R2.comb$Trial)
 head(safetyVLA.R2.comb)
 
-####Get R2 data set ready to combine with R1####
+####Get R2 data set ready to combine with R1
 #Need to add up R2 recruits with aggregate function by trial
 #Need to get proportion of responses by bringing in spp.per.trial from R1
 #Columns in R1: Trial, treatments, trtmt.grp, R1.recruit, R1.spp.per.trial, R1.spp.rec.per.trial,
@@ -468,7 +491,7 @@ names(spp.rec.per.trial) <- c("Trial", "R2.spp.rec.per.trial")
 head(spp.rec.per.trial)
 nrow(spp.rec.per.trial)
 nrow(spp.per.trial)
-#have the same amount of rows in all three to combine! Trial 36 in spp.rec.per.trial is disappearing, why?? is gone in safetyvla.r2.comb also, fixed **due to pre having a space after it in csv
+#have the same amount of rows in all three to combine! 
 
 ##Create data frame of just trial and treatment
 head(safetyVLA.R2)
@@ -509,7 +532,8 @@ write.csv(safetyVLA.prop.R2, "safetyVLA.prop.R2.csv", row.names = FALSE)
 safetyVLA.prop.R2 <- read.csv("safetyVLA.prop.R2.csv")
 unique(safetyVLA.prop.R2$Trial)
 nrow(safetyVLA.prop.R2)
-####Add number of recruits to this safety TFLA.prop.R2####
+
+####Add number of recruits to this safety TFLA.prop.R2
 #aggregate here
 head(safetyVLA.R2.comb)
 
@@ -550,7 +574,8 @@ VLA.R2 <- read.csv("VLA.R2.csv")
 head(VLA.R2)
 
 
-####Plot R2####
+# Plot Response 2 ---------------------------------------------------------
+
 prop.plotVLA.R2 <- ggplot(VLA.R2, aes(Treatment, R2.prop.rec)) + geom_boxplot(aes(fill=Treatment), show.legend = FALSE) +
   labs(y="Proportion of Recruits") + theme_bw() +
   theme(axis.title.x = element_blank(), axis.title = element_text(size=15)) +
@@ -580,13 +605,15 @@ pcombVR1R2 <- ggarrange(prop.plotVLA.R2, p1V, num.plotVLA.R2, p2V,
                          common.legend = TRUE, legend = "right")
 
 pcombVR1R2
-##***problem here with plot labels....R1 is being listed as R2
 
-###Combine data frames for both responses####
+
+# Combine R1 and R2 DFs ---------------------------------------------------
+
+###Combine data frames for both responses
 head(VLA.R1)
 head(VLA.R2)
 
-####Merge R1 and R2 responses into one data frame####
+####Merge R1 and R2 responses into one data frame
 VLA.Rcomb <- merge(VLA.R1, VLA.R2, by= c("Trial", "Point", "Treatment", "Exemplar", "Forest.type"))
 head(VLA.Rcomb)
 
@@ -595,7 +622,7 @@ VLA.Rcomb$Trial <- as.numeric(VLA.Rcomb$Trial)
 VLA.Rcomb <- arrange(VLA.Rcomb, Trial)
 #TFLA.Rcomb <- TFLA.Rcomb[order(TFLA.Rcomb$Trial),]
 
-####Now combine R1 and R2 recruits####
+####Now combine R1 and R2 recruits
 VLA.Rcomb$Total.Recs <- VLA.Rcomb$R2.recruit+VLA.Rcomb$R1.recruit
 
 #Reorder treatments for plotting
@@ -611,7 +638,7 @@ num.plotVLAcomb <- ggplot(subset(VLA.Rcomb,Treatment%in% c("MSF","CTRL","NF")), 
   theme(axis.title = element_text(size=20)) +
   ylim(NA,12.5)
 
-####Now combine R1 and R2 spp per trial, spp rec per trial, prop recs####
+####Now combine R1 and R2 spp per trial, spp rec per trial, prop recs
 head(VLA.Rcomb)
 VLA.Rcomb$Total.spp.trial <- VLA.Rcomb$R2.spp.per.trial+VLA.Rcomb$R1.spp.per.trial
 VLA.Rcomb$Total.spp.rec.trial <- VLA.Rcomb$R2.spp.rec.per.trial+VLA.Rcomb$R1.spp.rec.per.trial
@@ -649,14 +676,14 @@ pcombVRcomb
 annotate_figure(pcombVRcomb, top = text_grob("Response 1 & 2 in Varzea", 
                                               color = "black", face = "bold", size = 20))
 
-###Plot response 1&2 by treatment type####
+###Plot response 1&2 by treatment type
 num.plotV.type <- ggplot(VLA.Rcomb, aes(x=Tr.Type, y=Total.Recs, fill=Tr.Type)) + 
   geom_boxplot(show.legend = FALSE) +
   labs(x="Treatment", y="Number of Recruits") + 
   stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black") + theme_bw() +
   theme(axis.title = element_text(size = 15)) 
 
-###Plot VLA proportion response 1&2 by treatment type####
+###Plot VLA proportion response 1&2 by treatment type
 prop.plotV.type <- ggplot(VLA.Rcomb, aes(x=Tr.Type, y=Total.prop.rec, fill=Tr.Type)) + 
   geom_boxplot(show.legend = FALSE) +
   labs(y="Proportion of Recruits") + 
@@ -674,7 +701,8 @@ annotate_figure(pcombVR.type, top = text_grob("Response 1 & 2 in Varzea",
                                              color = "black", face = "bold", size = 20))
 
 
-###Net Distance####
+# Net Distance Change -----------------------------------------------------
+
 safetyVLA.R2.comb <- read.csv("safetyVLA.R2.comb.csv")
 head(safetyVLA.R2.comb)
 
@@ -701,7 +729,10 @@ net.dist.VLA <- net.dist.VLA %>% relocate(Forest.type, .after = Exemplar)
 write.csv(net.dist.VLA, "net.dist.VLA23.csv", row.names = FALSE)
 net.dist.VLA <- read.csv("net.dist.VLA23.csv")
 
-###plot nest dist by treatment group####
+
+# Plot Net Distance -------------------------------------------------------
+
+###plot net dist by treatment group
 P.net.dist.V <- ggplot(net.dist.VLA, aes(Treatment, Net.Dist)) + geom_boxplot(aes(fill=Treatment), show.legend = FALSE) +labs(x="Treatment", y="Net Dist Moved (m)") + theme_bw() +
   theme(axis.title = element_text(size = 15))+ stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
 
@@ -717,7 +748,7 @@ PV.net.dist.VA <- ggplot(net.dist.VLA, aes(Treatment, Net.Dist)) + geom_violin(a
 annotate_figure(PV.net.dist.VA, top = text_grob("Net Distance Change in Varzea", 
                                               color = "black", face = "bold", size = 20))
 
-###Varzea plots net dist by treatment type####
+###Varzea plots net dist by treatment type
 
 P.net.dist.V.type <- ggplot(net.dist.VLA, aes(Tr.Type, Net.Dist)) + geom_boxplot(aes(fill=Tr.Type), show.legend = FALSE) + theme_bw() + theme(axis.title = element_text(size=15)) + 
   labs(x="Treatment", y="Net Dist Moved (m)") + stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")

@@ -1,10 +1,32 @@
-##Analysis for safety cue thesis work in tierra firme forest 
+##################Code created by Chelsey October 21, 2023
+
+# Preparing data for analysis -- data from tierra firme forest type
+# Two response types possible: 1) absent pre-stimulus within 30m, present within 30m in post-stimulus; 2) present pre-stimulus >30m, present post-stimulus <30m 
+# Count up number of individuals and number of species recruited per trial
+# Determine net distance change from pre to post-stimulus
+
+# Clear the environment
+rm(list = ls())
+
+# Specify the required packages
+package_list <- c("tidyverse", "ggpubr")
+
+# Install and load the packages
+install.packages(package_list)
+library(tidyverse) #used for tidying data and plotting
+library(ggpubr) #used for combining plots
+
+#Run to install packages needed and load libraries
+for (package in package_list) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package)
+    library(package, character.only = TRUE)
+  }
+}
+
+# Setup Data --------------------------------------------------------------
 
 ###Set working directory
-
-###Read in libraries
-library(tidyverse)
-library(ggpubr)
 
 ###read in TFLA csv file and create object
 safetyTFLA<-read.csv("23safetycueTFLA.csv", header=TRUE)
@@ -14,12 +36,12 @@ TFLAmaster <- read.csv("23TFLA.MASTER.csv")
 head(safetyTFLA)
 head(TFLAmaster)
 
-####Subset data frame for variables of interest####
+# Subset data frame for variables of interest -----------------------------
+
 safetyTFLA <- subset(safetyTFLA, select = c("Trial","Treatment", "Exemplar", "Stage","Spp", "ID", "Distance"))
-sapply(safetyTFLA, class)
+sapply(safetyTFLA, class) #Determine class of variables
 
 #Keep only Trial # and location in master 
-####Subset dataframe for variables of interest####
 TFLAmaster <- subset(TFLAmaster, select = c("Prueba","Point"))
 names(TFLAmaster)[1] <- "Trial"
 #Remove duplicates
@@ -44,9 +66,11 @@ safetyTFLA <- merge(TFLAmaster, safetyTFLA, by="Trial")
 write.csv(safetyTFLA, "23safetycueTFLA.csv", row.names = FALSE)
 
 
-############Response 1################################################################
+
+# Response 1 No.Individuals------------------------------------------------------
+
 #Absent in pre-trial within 30m, present within 30m in post-trial
-####Remove anything greater than 30m distance Response 1#### Do we need to do this still??
+####Remove anything greater than 30m distance Response 1
 safetyTFLA30 <- safetyTFLA[!safetyTFLA$Distance>30,]
 head(safetyTFLA30)
 #Check if all distances above 30m were removed
@@ -54,7 +78,9 @@ length(safetyTFLA30$Stage[which(safetyTFLA30$Distance>30)])
 safetyTFLA30[safetyTFLA30$Distance>30,]
 unique(safetyTFLA30$Trial) #137 trials included
 
-###################TFLA Response 1#####################################################
+
+## For-loops ---------------------------------------------------------------
+
 ###Prepare for for loops 
 #Create spp list of all spp with ID observed throughout experiment to add to pre and post
 ID.list<-unique(safetyTFLA30$ID)
@@ -140,8 +166,6 @@ head(pre.v.postTFLA30)
 unique(pre.v.postTFLA30$Treatment)
 head(pre.v.postTFLA30)
 
-#library(dplyr)
-
 #NF <- pre.v.postTFLA30.1 %>% 
   #filter(trtmt.grp=="NonFlock" )
 minuscon <- pre.v.postTFLA30 %>% 
@@ -174,6 +198,8 @@ head(pre.v.postTFLA30)
 unique(pre.v.postTFLA30$Treatment)
 
 
+# Sum No. Recruits by Trial -----------------------------------------------
+
 ####Sum number of recruits by trial using aggregate function####
 rec.trialTFLA30 <- aggregate(Recruit~ Trial+Treatment+Exemplar, pre.v.postTFLA30, sum)
 head(rec.trialTFLA30)
@@ -185,7 +211,10 @@ rec.trialTFLA30 <- rec.trialTFLA30[order(rec.trialTFLA30$Trial),]
 write.csv(rec.trialTFLA30, "rec.trialTFLA30.csv", row.names = FALSE)
 rec.trialTFLA30 <- read.csv("rec.trialTFLA30.csv")
 
-####Set proportions Response 1 Time 1####
+
+# Response 1 No.Species ---------------------------------------------------
+
+####Set No.Species Response 1
 ###Set up for loop to count number of species observed per trial using code above
 #Need to create for loop to include trial and treatment for each line. 
 #First create empty vector for total spp per trial and spp recruited per trial
@@ -229,7 +258,7 @@ head(Trial.trtmt)
 #library(tidyverse)
 str(Spp.rec.per.trial)
 
-####Merge data to get prop df####
+####Merge data to get prop df
 Prop.trialTFLA30 <- merge(Trial.trtmt, c(Spp.per.trial, Spp.rec.per.trial), by="Trial", all = TRUE)
 ###Combine recruits per trial and number of species per trial to get proportion 
 Prop.trialTFLA30$Prop.rec <- Prop.trialTFLA30$Spp.rec.per.trial/Prop.trialTFLA30$Spp.per.trial
@@ -238,7 +267,10 @@ head(Prop.trialTFLA30)
 ###Replace NaNs with 0s
 Prop.trialTFLA30$Prop.rec[is.nan(Prop.trialTFLA30$Prop.rec)]<-0 #There are no NAs
 
-####Merge prop rec and rec Response 1 Time 1####
+
+# Merge No.Individuals and No.Species DFs ---------------------------------
+
+####Merge prop rec and rec Response 1
 ###Now need to add number of recruits per trial to this
 #Using merge
 TFLA.R1 <- merge(rec.trialTFLA30, Prop.trialTFLA30)
@@ -272,10 +304,6 @@ head(TFLA.R1)
 
 ###Plot using ggplot
 
-library(ggplot2)
-library(wesanderson)
-library(viridis)
-
 prop.plotTFLA.R1 <- ggplot(TFLA.R1, aes(Treatment, R1.prop.rec)) + geom_boxplot(aes(fill=Treatment)) + theme_bw() +labs(title="Tierra Firme Response 1", x="Treatment", y="Proportion Recruits") + guides(fill=guide_legend(title="Treatment Group")) + stat_summary(fun=mean, geom="point", shape=15, size=4, color="gold4", fill="gold4") +scale_fill_manual(values = wes_palette("Moonrise3", n = 5))
 colors()
 
@@ -308,9 +336,11 @@ annotate_figure(pcombTF, top = text_grob("Response 1 in Tierra Firme",
                                         color = "black", face = "bold", size = 20))
 
 
-###################################Response 2#####
-####Select those that moved in closer from pre to post Response 2######
-####Subset data frame for variables of interest####
+
+# Response 2 No.Individuals -----------------------------------------------
+
+####Select those that moved in closer from pre to post Response 2
+####Subset data frame for variables of interest
 
 safetyTFLA <- read.csv("23safetycueTFLA.csv")
 safetyTFLA <- subset(safetyTFLA, select = c("Trial","Treatment", "Exemplar","Stage","Spp", "ID", "Distance"))
@@ -319,11 +349,7 @@ head(safetyTFLA)
 unique(safetyTFLA$ID)
 
 
-####Subset dataframe for variables of interest Resp2####
-#Want to say if pre distance is less than post distance...but think I need to aggregate
-#so that spp are side by side here. might need to first put through master for loop 
-#if that is the case then I need to somehow keep distance for each spp in master loop 
-#Or do i....Can maybe just aggregate/merge from start...lets see
+####Subset dataframe for variables of interest Resp2
 
 safetyTFLA.R2 <- safetyTFLA
 head(safetyTFLA.R2)
@@ -333,7 +359,7 @@ safetyTFLA.R2$Spp <- ifelse(safetyTFLA.R2$Spp == "UK", safetyTFLA.R2$ID, safetyT
 safetyTFLA.R2$Spp <- ifelse(safetyTFLA.R2$Spp == "UKCAN", safetyTFLA.R2$ID, safetyTFLA.R2$Spp)
 safetyTFLA.R2$Spp <- ifelse(safetyTFLA.R2$Spp == "UKCOL", safetyTFLA.R2$ID, safetyTFLA.R2$Spp)
 
-####Split dataframe into pre and post####
+####Split dataframe into pre and post
 safetyTFLA.R2.Pre <- safetyTFLA.R2[which(safetyTFLA.R2$Stage=="PRE"),] #1143 obs
 #filter(safetyTFLA, Stage=="PRE") Can also do this way
 head(safetyTFLA.R2.Pre)
@@ -344,9 +370,6 @@ head(safetyTFLA.R2.Post)
 # can combine 
 safetyTFLA.R2.comb <- merge(safetyTFLA.R2.Pre, safetyTFLA.R2.Post, by=c("Trial", "Treatment", "Exemplar", "Spp", "ID"), all.x = TRUE)
 head(safetyTFLA.R2.comb) #1159 obs, by adding in all.x, we don't lose trials with no recruits
-
-#Can double check with anti join but columns need to be the same, look later
-anti_join()
 
 #Remove duplicate columns
 safetyTFLA.R2.comb <- safetyTFLA.R2.comb %>% select(!c(Stage.x, Stage.y))
@@ -368,19 +391,17 @@ safetyTFLA.R2.comb$R2.recruit <- ifelse(safetyTFLA.R2.comb$Pre.Dist > safetyTFLA
 head(safetyTFLA.R2.comb)
 head(TFLA.R1)
 
-####Remove conspecifics from Solo spp####
+####Remove conspecifics from Solo spp
 unique(safetyTFLA.R2.comb$Treatment)
 head(safetyTFLA.R2.comb) #335 obs
 
-#NF <- pre.v.postVALA30.1 %>% 
-#filter(trtmt.grp=="NonFlock" ) #Don't need this part i dont think
 minuscon.R2 <- safetyTFLA.R2.comb %>% 
   filter(Treatment=="NF" ) %>% filter(!Spp=="HEGRI" & !Spp== "LECOR"& !Spp== "MOMOM" & !Spp== "PLCOR" & !Spp== "LAHYP")
 
 head(minuscon.R2)
 sum(safetyTFLA.R2.comb$Spp=="HEGRI")
 sum(minuscon.R2$Spp=="HEGRI")
-#check total obsservations in nonflock
+#check total observations in nonflock
 sum(safetyTFLA.R2.comb$Treatment=="NF")
 length(minuscon.R2$Spp)
 
@@ -389,14 +410,16 @@ minusNF.R2 <- subset(safetyTFLA.R2.comb, !Treatment=="NF")
 #Check this removed nonflock treatment
 sum(minusNF.R2$Treatment=="NF")
 
-#ReCombine the nonflock minus conspeficis and all trtms but nonflock
+#ReCombine the nonflock minus conspecific and all trtmts but nonflock
 safetyTFLA.R2.comb <- rbind(minuscon.R2, minusNF.R2)
 head(safetyTFLA.R2.comb)
 #Order this shit
 safetyTFLA.R2.comb <- safetyTFLA.R2.comb %>% arrange(safetyTFLA.R2.comb$Trial)
 head(safetyTFLA.R2.comb)
 
-####Get R2 data set ready to combine with R1####
+
+# Merge No.Individuals and No.Species Response 2 --------------------------
+
 #Need to add up R2 recruits with aggregate function by trial
 #Need to get proportion of responses by bringing in spp.per.trial from R1
 #Columns in R1: Trial, treatments, trtmt.grp, R1.recruit, R1.spp.per.trial, R1.spp.rec.per.trial,
@@ -488,6 +511,10 @@ write.csv(safetyTFLA.prop.R2, "safetyTFLA.prop.R2.csv", row.names = FALSE)
 safetyTFLA.prop.R2 <- read.csv("safetyTFLA.prop.R2.csv")
 unique(safetyTFLA.prop.R2$Trial)
 nrow(safetyTFLA.prop.R2)
+
+
+# Add No.Individuals to Species DF ---------------------------------------------------------
+
 ####Add number of recruits to this safety TFLA.prop.R2####
 #aggregate here
 head(safetyTFLA.R2.comb)
@@ -528,7 +555,8 @@ TFLA.R2 <- read.csv("TFLA.R2.csv")
 head(TFLA.R2)
 
 
-####Plot R2####
+## Plot Response 2 ---------------------------------------------------------
+
 prop.plotTFLA.R2 <- ggplot(TFLA.R2, aes(Treatment, R2.prop.rec)) + geom_boxplot(aes(fill=Treatment), show.legend = FALSE) + labs(x="Treatment", y="Proportion of Recruits") + theme_bw()+ 
   theme(axis.title.x = element_blank(), axis.title = element_text(size=15)) +
   stat_summary(fun=mean, geom="point", shape=15, size=4, color="black", fill="black")
@@ -563,6 +591,9 @@ pcombTFR1R2
 head(TFLA.R1)
 head(TFLA.R2)
 
+
+# Combine R1 and R2 DFs ---------------------------------------------------
+
 ####Merge R1 and R2 responses into one data frame####
 TFLA.Rcomb <- merge(TFLA.R1, TFLA.R2, by= c("Trial", "Point", "Treatment", "Exemplar", "Forest.type"))
 head(TFLA.Rcomb)
@@ -573,7 +604,7 @@ TFLA.Rcomb$Trial <- as.numeric(TFLA.Rcomb$Trial)
 TFLA.Rcomb <- arrange(TFLA.Rcomb, Trial)
 #TFLA.Rcomb <- TFLA.Rcomb[order(TFLA.Rcomb$Trial),]
 
-####Now combine R1 and R2 recruits####
+####Now combine R1 and R2 recruits
 TFLA.Rcomb$Total.Recs <- TFLA.Rcomb$R2.recruit+TFLA.Rcomb$R1.recruit
 
 #Reorder treatments for plotting
@@ -593,7 +624,7 @@ num.plotTFLAcomb <- ggplot(subset(TFLA.Rcomb, Treatment %in% c("MSF", "CTRL", "N
 
 num.plotTFLAcomb 
 
-####Now combine R1 and R2 spp per trial, spp rec per trial, prop recs####
+####Now combine R1 and R2 spp per trial, spp rec per trial, prop recs
 head(TFLA.Rcomb)
 TFLA.Rcomb$Total.spp.trial <- TFLA.Rcomb$R2.spp.per.trial+TFLA.Rcomb$R1.spp.per.trial
 TFLA.Rcomb$Total.spp.rec.trial <- TFLA.Rcomb$R2.spp.rec.per.trial+TFLA.Rcomb$R1.spp.rec.per.trial
@@ -617,6 +648,9 @@ head(TFLA.Rcomb)
 sapply(TFLA.Rcomb, class)
 #reorder the groups order : I change the order of the factor data$names to order plot
 TFLA.Rcomb$Tr.Type <- factor(TFLA.Rcomb$Tr.Type , levels=c("CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
+
+
+# Plot R1/R2 No.Species ---------------------------------------------------
 
 ###Plot TFLA comb prop
 prop.plotTFLAcomb <- ggplot(subset(TFLA.Rcomb, Treatment %in% c("MSF","CTRL","NF")), 
@@ -642,7 +676,7 @@ annotate_figure(pcombTFRcomb, top = text_grob("Response 1 & 2 in Tierra Firme",
                                              color = "black", face = "bold", size = 20))
 
 
-###Plot response 1&2 by treatment type####
+###Plot response 1&2 by treatment type
 num.plotTF.type <- ggplot(TFLA.Rcomb, aes(x=Tr.Type, y=Total.Recs, fill=Tr.Type)) + 
   geom_boxplot(show.legend = FALSE) +
   labs(x="Treatment", y="Number of Recruits") + 
@@ -650,7 +684,7 @@ num.plotTF.type <- ggplot(TFLA.Rcomb, aes(x=Tr.Type, y=Total.Recs, fill=Tr.Type)
   theme(axis.title = element_text(size = 20)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 15), axis.text.y = element_text(size = 15))
 
-###Plot TFLA proportion response 1&2 by treatment type####
+###Plot TFLA proportion response 1&2 by treatment type
 prop.plotTF.type <- ggplot(TFLA.Rcomb, aes(x=Tr.Type, y=Total.prop.rec, fill=Tr.Type)) + 
   geom_boxplot(show.legend = FALSE) +
   labs(y="Proportion of Recruits") + 
@@ -669,7 +703,8 @@ annotate_figure(pcombTFR.type, top = text_grob("Response 1 & 2 in Tierra Firme",
                                               color = "black", face = "bold", size = 20))
 
 
-###Net Distance####
+# Net Distance Data Prep --------------------------------------------------
+
 safetyTFLA.R2.comb <- read.csv("safetyTFLA.R2.comb.csv")
 head(safetyTFLA.R2.comb)
 
@@ -704,6 +739,9 @@ net.dist.TFLA <- net.dist.TFLA[, c(1,2,3,12,4,10,5,6,7,8,9,11)]
 write.csv(net.dist.TFLA, "net.dist.TFLA23.csv", row.names = FALSE)
 net.dist.TFLA <- read.csv("net.dist.TFLA23.csv")
 
+
+# Plot Net Distance Change ------------------------------------------------
+
 ###plot tfla net dist by treatment group####
 P.net.dist.TF <- ggplot(net.dist.TFLA, aes(Treatment, Net.Dist)) + geom_boxplot(aes(fill=Treatment), show.legend = FALSE) +labs(x="Treatment", y="Net Dist Moved (m)") + theme_bw() +
   theme(axis.title = element_text(size=15)) +
@@ -722,7 +760,7 @@ PV.net.dist.TF <- ggplot(net.dist.TFLA, aes(Treatment, Net.Dist)) + geom_violin(
 annotate_figure(PV.net.dist.TF, top = text_grob("Net Distance Change in Tierra Firme", 
                                                 color = "black", face = "bold", size = 20))
 
-###TF plots net dist by treatment type####
+###TF plots net dist by treatment type
 
 #reorder the groups order : I change the order of the factor data$names to order plot
 net.dist.TFLA$Tr.Type <- factor(net.dist.TFLA$Tr.Type , levels=c("CTRL", "MSF", "HARU", "MYLO", "MYSC", "THAR", "TUOC", "NF", "MOMO", "LAHY", "LECO", "PLCO", "HEGR"))
