@@ -90,16 +90,9 @@ LN <- lm(Net.Dist~1, data = net.dist23)
 # Single Fixed-effect Model
 # These models consider one predictor at a time to gauge their individual impacts on the dependent variable.
 L1 <- lm(Net.Dist~Treatment, data = net.dist23)
-L2 <- lm(Net.Dist~Forest.type, data = net.dist23)
-
-# Two covariates Models
-L3 <- lm(Net.Dist~Treatment+Forest.type, data = net.dist23)
-
-# Two covariates with interaction term
-L4 <- lm(Net.Dist~Treatment+Forest.type+Forest.type*Treatment, data = net.dist23)
 
 # Model selection LM Net Distance using AIC because sample size is relatively large
-best.mod <- model.sel(L1,L2,L3,L4,LN, rank = "AIC") 
+best.mod <- model.sel(L1,LN, rank = "AICc") 
 best.mod
 
 ## LMEMs -----------------------------------------------------------------
@@ -111,21 +104,14 @@ LN2 <- lmer(Net.Dist~1+(1|Point), net.dist23)
 
 # Single Fixed-effect Model
 L5 <- lmer(Net.Dist~Treatment+(1|Point),data = net.dist23)
-L6 <- lmer(Net.Dist~Forest.type+(1|Point),data = net.dist23)
-
-# Two covariates Models
-L7 <- lmer(Net.Dist~Treatment+Forest.type+(1|Point),data = net.dist23)
-
-# Two covariates with interaction term
-L8 <- lmer(Net.Dist~Treatment+Forest.type+Forest.type*Treatment+(1|Point),data = net.dist23)
 
 ## Model Selection with all Models -----------------------------------------
 # Here I compare models from all distribution types and with all combinations of covariates to determine the best model
 
-best.mod <- model.sel(L1,L2,L3,L4,LN, L5,L6,L7,L8,LN2, rank = "AIC") 
+best.mod <- model.sel(L1,LN, L5,LN2, rank = "AICc") 
 best.mod
 
-summary(L8)
+summary(L5)
 
 # Check Model Assumptions -------------------------------------------------
 
@@ -138,14 +124,15 @@ summary(L8)
 #Will return residuals around the regression line/linear model
 #Plot histogram
 #hist(resid(m1), probability = TRUE)
-hist(resid(L8), probability = TRUE)
+hist(resid(L5), probability = TRUE)
+resids <- resid(L5)
 mean(resids)
 
 curve(dnorm(x, mean=mean(resids), sd=sd(resids) ),from=-50,to=50,add=TRUE)
 #Normalish
 
-qqnorm(resid(L8))
-qqline(resid(L8))
+qqnorm(resid(L5))
+qqline(resid(L5))
 #Not super normal...
 
 #check goodness of fit test to a normal distribution 
@@ -164,15 +151,15 @@ leveneTest(resids, net.dist23$Treatment) #p-value=0.4
 ## Goodness of Fit Number of Individuals -----------------------------------
 
 #To test the goodness of fit of the top model candidate, I plotted model residuals against the predicted line, and plotted a histogram of simulated residuals against fitted residuals 
-qqnorm(resid(L8))
-qqline(resid(L8))
+qqnorm(resid(L5))
+qqline(resid(L5))
 
-gsimOut <- simulateResiduals(L8)
-plot(L8)
-testDispersion(L8)
+gsimOut <- simulateResiduals(L5)
+plot(L5)
+testDispersion(L5)
 
 # Predict Model Values ----------------------------------------------------
-
+#don't need this as no longer interaction term...
 #Need to use a bootstrapping technique as there is an interaction term in the top model
 
 # Function to predict values
@@ -182,11 +169,11 @@ predict_fun <- function(fit) {
 
 # Perform bootstrapping
 set.seed(123)  # For reproducibility
-boot_results <- bootMer(L8, predict_fun, nsim = 1000, use.u = TRUE)
+boot_results <- bootMer(L5, predict_fun, nsim = 1000, use.u = TRUE)
 
 #Calculate confidence intervals
 # Calculate the predicted values
-predicted_vals <- predict(L8, newdata = net.dist23, re.form = NA)
+predicted_vals <- predict(L5, newdata = net.dist23, re.form = NA)
 
 # Calculate the confidence intervals
 conf_int <- apply(boot_results$t, 2, function(x) quantile(x, c(0.025, 0.975)))
@@ -219,24 +206,53 @@ print(agg_data)
 
 ## Plot Predictions --------------------------------------------------------
 
+predicted_data  <- predicted_data %>%
+  mutate(Treatment_Full = case_when(
+    Treatment == "CTRL" ~ "Control",
+    Treatment == "MSF" ~ "MSF Group",
+    Treatment == "NF" ~ "NF Group",
+    Treatment == "MSFSOLO" ~ "MSF Individual",
+    Treatment == "NFSOLO" ~ "NF Individual",
+    TRUE ~ Treatment  # This keeps any other values unchanged
+  ))
+
+# Define the colors
+treatment_colors <- c(
+  "Control" = "darkgray",
+  "MSF Group" = "cornflowerblue",
+  "NF Group" = "seagreen3",
+  "MSF Individual" = "cadetblue2",
+  "NF Individual" = "lightgreen"
+)
+
+shapes <- c("Control" = 16, 
+            "MSF Group" = 17, 
+            "NF Group" = 18,
+            "MSF Individual" = 2,
+            "NF Individual" = 5)  # Example shapes
+
 # Plot using ggplot predicted values with confidence intervals
-ggplot(predicted_data, aes(x = Treatment, y = Observed)) +
-  geom_jitter(aes(colour = Treatment), width = 0.1) +  # Add observed values offset 
-  geom_point(data = agg_data, aes(x = Treatment, y = Predicted), colour = "black", size = 4) +  # Predicted mean
-  geom_errorbar(data = agg_data, aes(x = Treatment, ymin = lower_ci, ymax = upper_ci), width = 0.1) +  # CIs
-  labs(x = "Treatment", y = "Net Distance") +  # Axis labels
+ggplot(predicted_data, aes(x = Treatment_Full, y = Predicted)) +
+  geom_jitter(aes(Treatment_Full, Observed, 
+                  colour = Treatment_Full, shape = Treatment_Full), width = 0.1, size = 3) +  # Add observed values offset 
+  geom_point(colour = "black", size = 4) +  # Predicted mean
+  geom_errorbar(aes(x = Treatment_Full, y = Predicted, ymin = lower_ci, ymax = upper_ci), width = 0.2) +  # CIs
+  labs(x = "Treatment", y = "Net Distance Movement") +  # Axis labels
   theme_classic() +  # Customize the theme
   theme(
     text = element_text(family = "Times New Roman"),
     axis.title = element_text(size = 20),
-    axis.text.x = element_text(angle = 00, size = 12, hjust = 1),  # Rotate x-axis text
+    axis.text.x = element_text(size = 12),  # Rotate x-axis text
     axis.text.y = element_text(size = 15),
-    legend.position = "none"
-  )
+    legend.position = "none") +
+  scale_color_manual(values = treatment_colors) +
+  scale_shape_manual(values = shapes)  # Specify shapes
+
 
 # Model Treatment Type  ---------------------------------------------------
 
-Ltt <- lmer(Net.Dist~Tr.Type+Forest.type+Forest.type*Tr.Type+(1|Point),data = net.dist23)
+
+Ltt <- lmer(Net.Dist~Tr.Type+(1|Point),data = net.dist23)
 summary(Ltt)
 
 #Need to use a bootstrapping technique as there is an interaction term in the top model
