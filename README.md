@@ -1,4 +1,4 @@
-# peru-safety23
+# Data and Code for the paper "The relative importance of safety cues from mixed-species flocks to a neotropical bird community"
 # Data management and analysis code finalized Jan31,2025
 # 23SafetyTFLA, contains data management for all trials completed in tierra firme forests
 # 23SafetyVLA, contains data management for all trials completed in varzea forests
